@@ -10,6 +10,18 @@ export interface ConsciousnessSnapshot {
   depth: number;
 }
 
+export interface ConsciousnessState {
+  id: string;
+  timestamp: number;
+  encodedVector: number[];
+  metadata: {
+    sessionId?: string;
+    meditationType?: string;
+    duration?: number;
+    [key: string]: any;
+  };
+}
+
 export class ConsciousnessEncoder {
   encodeSnapshot(snapshot: ConsciousnessSnapshot): number[] {
     const vector: number[] = [];
@@ -79,6 +91,40 @@ export class ConsciousnessEncoder {
       },
       coherence: vector[vector.length - 2],
       depth: vector[vector.length - 1] * 10
+    };
+  }
+
+  encodeConsciousnessState(meditationData: any): ConsciousnessState {
+    const snapshot: ConsciousnessSnapshot = {
+      timestamp: Date.now(),
+      biometrics: meditationData.biometrics || {
+        heartRate: 72,
+        brainwaves: { alpha: 0.3, beta: 0.4, theta: 0.2, delta: 0.1, gamma: 0.05 },
+        breathingRate: 16,
+        skinConductance: 0.5,
+        fibonacciRhythm: 0.618,
+        goldenBreathing: 0.75
+      },
+      emotional: meditationData.emotionalState || {
+        hue: 'Neutral',
+        intensity: 0.5,
+        polarity: 0
+      },
+      coherence: meditationData.coherence || 0.5,
+      depth: meditationData.depth || 0
+    };
+
+    const encodedVector = this.encodeSnapshot(snapshot);
+
+    return {
+      id: `consciousness_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      timestamp: snapshot.timestamp,
+      encodedVector,
+      metadata: {
+        sessionId: meditationData.sessionId,
+        meditationType: meditationData.type || 'meditation',
+        duration: meditationData.duration || 0
+      }
     };
   }
 }
