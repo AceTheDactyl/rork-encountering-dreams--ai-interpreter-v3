@@ -666,13 +666,16 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
           }
         }
 
-        // Check against neural sigil database
+        // Check against neural sigil database - convert Map to Array for filtering
         if (sigil.metadata?.neuralSigilData) {
           const neuralData = sigil.metadata.neuralSigilData;
-          const relatedSigils = neuralSigils.filter(s => 
-            s.metadata?.neuralSigilData?.category === neuralData.category ||
-            s.metadata?.neuralSigilData?.breathPhase === neuralData.breathPhase
-          );
+          const sigilEntries = Array.from(neuralSigils.entries());
+          const relatedSigils = sigilEntries
+            .map(([id, s]) => s)
+            .filter(s => 
+              s.metadata?.neuralSigilData?.category === neuralData.category ||
+              s.metadata?.neuralSigilData?.breathPhase === neuralData.breathPhase
+            );
 
           for (const relatedSigil of relatedSigils) {
             if (relatedSigil.id === sigil.id) continue;
