@@ -180,7 +180,7 @@ export const useDreamStore = create<DreamStore>()(
         
         // Calculate dream metrics
         const analysis = {
-          dominantBrainRegion: brainRegions.length > 0 ? brainRegions.reduce((max, region) => 
+          dominantBrainRegion: brainRegions.length > 0 ? brainRegions.reduce((max: any, region: any) => 
             region.activation > max.activation ? region : max
           ) : null,
           patternMatches,

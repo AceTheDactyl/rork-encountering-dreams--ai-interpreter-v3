@@ -78,7 +78,7 @@ export class ConsciousnessEncoder {
     };
   }
 
-  // New method to encode consciousness state from meditation data
+  // Method to encode consciousness state from meditation data
   encodeConsciousnessState(meditationData: any): ConsciousnessSnapshot {
     const timestamp = Date.now();
     const id = `consciousness_${timestamp}_${Math.random().toString(36).substr(2, 9)}`;

@@ -516,8 +516,8 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
       storeConsciousnessState: async (meditationData: any) => {
         const { consciousnessEncoder, consciousnessStates } = get();
         
-        // Encode consciousness state
-        const state = consciousnessEncoder.encodeState(meditationData);
+        // Encode consciousness state using the correct method name
+        const state = consciousnessEncoder.encodeConsciousnessState(meditationData);
         
         // Generate sigil for this state
         const sigil = await get().generateNeuralSigil(meditationData, 'consciousness');
@@ -564,7 +564,8 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
         
         if (sigils.length < 2) return null;
         
-        const braidResult = await sigilBraider.braidSigils(sigils);
+        // Use the correct method name 'braid' instead of 'braidSigils'
+        const braidResult = await sigilBraider.braid(sigils);
         
         // Store braided pattern
         const newPatternLibrary = new Map(patternLibrary);
