@@ -563,33 +563,35 @@ Your practice data has been saved and consciousness blocks have been created.`,
         />
       </Animated.View>
 
-      {/* Real-time Bio Metrics Panel */}
-      <Animated.View style={[
-        styles.metricsSection,
-        {
-          opacity: waveOpacity,
-          transform: Platform.OS !== 'web' ? [{ scale: consciousnessFlowAnim.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0.98, 1.02]
-          })}] : []
-        }
-      ]}>
-        <MetricsPanel
-          biometricData={biometricData}
-          emotionalState={emotionalState}
-          currentSignature={currentSignature}
-          securityMetrics={securityMetrics}
-        />
-        
-        {/* Consciousness Monitor for Neural Sigil Generation */}
-        {consciousnessActive && currentSession && (
-          <View style={styles.consciousnessMonitorSection}>
-            <Text style={styles.consciousnessMonitorText}>
-              Consciousness monitoring active for session: {currentSession.id}
-            </Text>
-          </View>
-        )}
-      </Animated.View>
+      {/* Real-time Bio Metrics Panel - Only render if we have data */}
+      {biometricData && emotionalState && securityMetrics && (
+        <Animated.View style={[
+          styles.metricsSection,
+          {
+            opacity: waveOpacity,
+            transform: Platform.OS !== 'web' ? [{ scale: consciousnessFlowAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.98, 1.02]
+            })}] : []
+          }
+        ]}>
+          <MetricsPanel
+            biometricData={biometricData}
+            emotionalState={emotionalState}
+            currentSignature={currentSignature}
+            securityMetrics={securityMetrics}
+          />
+          
+          {/* Consciousness Monitor for Neural Sigil Generation */}
+          {consciousnessActive && currentSession && (
+            <View style={styles.consciousnessMonitorSection}>
+              <Text style={styles.consciousnessMonitorText}>
+                Consciousness monitoring active for session: {currentSession.id}
+              </Text>
+            </View>
+          )}
+        </Animated.View>
+      )}
     </ScrollView>
   );
 }

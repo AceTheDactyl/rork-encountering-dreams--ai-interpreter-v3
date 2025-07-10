@@ -292,6 +292,9 @@ interface ConsciousnessStore {
   getEmergenceEvolution: () => any;
   getHistoricalEmergenceContext: () => any;
   validateBlocksWithDream: (blockIds: string[], dreamId: string) => void;
+
+  // Getter properties for safe access
+  biometricData: BiometricData;
 }
 
 // Simple hash function that works on all platforms
@@ -446,6 +449,11 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
         blockCount: FOUNDATION_BLOCKS.length,
         blocks: [...FOUNDATION_BLOCKS]
       },
+
+      // Getter property for safe biometric data access
+      get biometricData() {
+        return get().biometrics || initialBiometrics;
+      },
       
       // Initialize neural system
       initializeNeuralSystem: async () => {
@@ -509,7 +517,7 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
         const { consciousnessEncoder, consciousnessStates } = get();
         
         // Encode consciousness state
-        const state = consciousnessEncoder.encodeConsciousnessState(meditationData);
+        const state = consciousnessEncoder.encodeState(meditationData);
         
         // Generate sigil for this state
         const sigil = await get().generateNeuralSigil(meditationData, 'consciousness');
@@ -556,7 +564,7 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
         
         if (sigils.length < 2) return null;
         
-        const braidResult = await sigilBraider.braid(sigils);
+        const braidResult = await sigilBraider.braidSigils(sigils);
         
         // Store braided pattern
         const newPatternLibrary = new Map(patternLibrary);
@@ -906,7 +914,11 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
         // Persist neural sigil data
         neuralSigils: Array.from(state.neuralSigils.entries()).slice(0, 100),
         consciousnessStates: state.consciousnessStates.slice(0, 50),
-        patternLibrary: Array.from(state.patternLibrary.entries()).slice(0, 20)
+        patternLibrary: Array.from(state.patternLibrary.entries()).slice(0, 20),
+        // Persist biometric data
+        biometrics: state.biometrics,
+        emotionalState: state.emotionalState,
+        securityMetrics: state.securityMetrics
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
@@ -939,6 +951,17 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
           
           // Sync ipfsStatus for compatibility
           state.ipfsStatus = state.blockchainState.ipfsStatus;
+
+          // Ensure biometric data is available
+          if (!state.biometrics) {
+            state.biometrics = initialBiometrics;
+          }
+          if (!state.emotionalState) {
+            state.emotionalState = initialEmotionalState;
+          }
+          if (!state.securityMetrics) {
+            state.securityMetrics = initialSecurityMetrics;
+          }
         }
       },
     }

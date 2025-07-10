@@ -16,12 +16,51 @@ interface MetricsPanelProps {
   securityMetrics: SecurityMetrics;
 }
 
+// Default values to prevent undefined errors
+const defaultBiometricData: BiometricData = {
+  heartRate: 72,
+  brainwaves: { alpha: 0.3, beta: 0.4, theta: 0.2, delta: 0.1, gamma: 0.05 },
+  breathingRate: 16,
+  skinConductance: 0.5,
+  fibonacciRhythm: 0.618,
+  goldenBreathing: 0.75
+};
+
+const defaultEmotionalState: EmotionalState = {
+  hue: 'Neutral',
+  intensity: 0.3,
+  polarity: 0.0,
+  emoji: '🩶'
+};
+
+const defaultSecurityMetrics: SecurityMetrics = {
+  hmacValid: true,
+  timestampValid: true,
+  entropyLevel: 0.85,
+  anomalyScore: 0.02,
+  hashIntegrity: true,
+  quantumSignatureValid: true,
+  blockchainConsistency: true
+};
+
 export default function MetricsPanel({
   biometricData,
   emotionalState,
   currentSignature,
   securityMetrics
 }: MetricsPanelProps) {
+  // Use default values if data is undefined
+  const safeBiometricData = biometricData || defaultBiometricData;
+  const safeEmotionalState = emotionalState || defaultEmotionalState;
+  const safeSecurityMetrics = securityMetrics || defaultSecurityMetrics;
+
+  // Additional safety checks for nested properties
+  const heartRate = safeBiometricData.heartRate ?? defaultBiometricData.heartRate;
+  const breathingRate = safeBiometricData.breathingRate ?? defaultBiometricData.breathingRate;
+  const goldenBreathing = safeBiometricData.goldenBreathing ?? defaultBiometricData.goldenBreathing;
+  const fibonacciRhythm = safeBiometricData.fibonacciRhythm ?? defaultBiometricData.fibonacciRhythm;
+  const brainwaves = safeBiometricData.brainwaves || defaultBiometricData.brainwaves;
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Quantum Consciousness Metrics</Text>
@@ -37,28 +76,28 @@ export default function MetricsPanel({
           <View style={styles.metricItem}>
             <Text style={styles.metricLabel}>Heart Rate</Text>
             <Text style={[styles.metricValue, { color: Colors.dark.error }]}>
-              {biometricData.heartRate.toFixed(0)} BPM
+              {heartRate.toFixed(0)} BPM
             </Text>
           </View>
           
           <View style={styles.metricItem}>
             <Text style={styles.metricLabel}>Breathing</Text>
             <Text style={[styles.metricValue, { color: Colors.dark.secondary }]}>
-              {biometricData.breathingRate.toFixed(0)} RPM
+              {breathingRate.toFixed(0)} RPM
             </Text>
           </View>
           
           <View style={styles.metricItem}>
             <Text style={styles.metricLabel}>Golden Breath</Text>
             <Text style={[styles.metricValue, { color: Colors.dark.accent }]}>
-              {(biometricData.goldenBreathing * 100).toFixed(1)}%
+              {(goldenBreathing * 100).toFixed(1)}%
             </Text>
           </View>
           
           <View style={styles.metricItem}>
             <Text style={styles.metricLabel}>Fibonacci</Text>
             <Text style={[styles.metricValue, { color: Colors.dark.primary }]}>
-              {(biometricData.fibonacciRhythm * 100).toFixed(1)}%
+              {(fibonacciRhythm * 100).toFixed(1)}%
             </Text>
           </View>
         </View>
@@ -72,7 +111,7 @@ export default function MetricsPanel({
         </View>
         
         <View style={styles.brainwaveContainer}>
-          {Object.entries(biometricData.brainwaves).map(([wave, value]) => (
+          {Object.entries(brainwaves).map(([wave, value]) => (
             <View key={wave} style={styles.brainwaveItem}>
               <Text style={styles.brainwaveLabel}>{wave.toUpperCase()}:</Text>
               <View style={styles.brainwaveBar}>
@@ -80,13 +119,13 @@ export default function MetricsPanel({
                   style={[
                     styles.brainwaveBarFill,
                     { 
-                      width: `${value * 100}%`,
+                      width: `${(value || 0) * 100}%`,
                       backgroundColor: getBrainwaveColor(wave)
                     }
                   ]} 
                 />
               </View>
-              <Text style={styles.brainwaveValue}>{(value * 100).toFixed(1)}%</Text>
+              <Text style={styles.brainwaveValue}>{((value || 0) * 100).toFixed(1)}%</Text>
             </View>
           ))}
         </View>
@@ -103,36 +142,36 @@ export default function MetricsPanel({
           <View style={styles.quantumMetricsContainer}>
             <View style={styles.quantumMetricRow}>
               <Text style={styles.quantumMetricLabel}>Spiral Resonance:</Text>
-              <Text style={[styles.quantumMetricValue, { color: getQuantumColor(currentSignature.metrics.spiralResonance) }]}>
-                {(currentSignature.metrics.spiralResonance * 100).toFixed(1)}%
+              <Text style={[styles.quantumMetricValue, { color: getQuantumColor(currentSignature.metrics?.spiralResonance || 0) }]}>
+                {((currentSignature.metrics?.spiralResonance || 0) * 100).toFixed(1)}%
               </Text>
             </View>
             
             <View style={styles.quantumMetricRow}>
               <Text style={styles.quantumMetricLabel}>Quantum Coherence:</Text>
-              <Text style={[styles.quantumMetricValue, { color: getQuantumColor(currentSignature.metrics.quantumCoherence) }]}>
-                {(currentSignature.metrics.quantumCoherence * 100).toFixed(1)}%
+              <Text style={[styles.quantumMetricValue, { color: getQuantumColor(currentSignature.metrics?.quantumCoherence || 0) }]}>
+                {((currentSignature.metrics?.quantumCoherence || 0) * 100).toFixed(1)}%
               </Text>
             </View>
             
             <View style={styles.quantumMetricRow}>
               <Text style={styles.quantumMetricLabel}>Fibonacci Harmony:</Text>
-              <Text style={[styles.quantumMetricValue, { color: getQuantumColor(currentSignature.metrics.fibonacciHarmony) }]}>
-                {(currentSignature.metrics.fibonacciHarmony * 100).toFixed(1)}%
+              <Text style={[styles.quantumMetricValue, { color: getQuantumColor(currentSignature.metrics?.fibonacciHarmony || 0) }]}>
+                {((currentSignature.metrics?.fibonacciHarmony || 0) * 100).toFixed(1)}%
               </Text>
             </View>
             
             <View style={styles.quantumMetricRow}>
               <Text style={styles.quantumMetricLabel}>Golden Ratio:</Text>
-              <Text style={[styles.quantumMetricValue, { color: getQuantumColor(1 - currentSignature.metrics.goldenRatioAlignment) }]}>
-                {((1 - currentSignature.metrics.goldenRatioAlignment) * 100).toFixed(1)}%
+              <Text style={[styles.quantumMetricValue, { color: getQuantumColor(1 - (currentSignature.metrics?.goldenRatioAlignment || 0)) }]}>
+                {((1 - (currentSignature.metrics?.goldenRatioAlignment || 0)) * 100).toFixed(1)}%
               </Text>
             </View>
             
             <View style={styles.quantumMetricRow}>
               <Text style={styles.quantumMetricLabel}>Blockchain Resonance:</Text>
-              <Text style={[styles.quantumMetricValue, { color: getQuantumColor(currentSignature.metrics.blockchainResonance) }]}>
-                {(currentSignature.metrics.blockchainResonance * 100).toFixed(1)}%
+              <Text style={[styles.quantumMetricValue, { color: getQuantumColor(currentSignature.metrics?.blockchainResonance || 0) }]}>
+                {((currentSignature.metrics?.blockchainResonance || 0) * 100).toFixed(1)}%
               </Text>
             </View>
           </View>
@@ -147,12 +186,12 @@ export default function MetricsPanel({
         </View>
         
         <View style={styles.emotionalContainer}>
-          <Text style={styles.emotionalEmoji}>{emotionalState.emoji}</Text>
+          <Text style={styles.emotionalEmoji}>{safeEmotionalState.emoji || '🩶'}</Text>
           <View style={styles.emotionalInfo}>
-            <Text style={styles.emotionalHue}>{emotionalState.hue}</Text>
+            <Text style={styles.emotionalHue}>{safeEmotionalState.hue || 'Neutral'}</Text>
             <Text style={styles.emotionalDetails}>
-              Intensity: {(emotionalState.intensity * 100).toFixed(1)}% | 
-              Polarity: {emotionalState.polarity > 0 ? '+' : ''}{emotionalState.polarity.toFixed(2)}
+              Intensity: {((safeEmotionalState.intensity || 0) * 100).toFixed(1)}% | 
+              Polarity: {(safeEmotionalState.polarity || 0) > 0 ? '+' : ''}{(safeEmotionalState.polarity || 0).toFixed(2)}
             </Text>
           </View>
         </View>
@@ -170,9 +209,9 @@ export default function MetricsPanel({
             <Text style={styles.securityLabel}>Entropy</Text>
             <Text style={[
               styles.securityValue,
-              { color: securityMetrics.entropyLevel > 0.7 ? Colors.dark.success : Colors.dark.error }
+              { color: (safeSecurityMetrics.entropyLevel || 0) > 0.7 ? Colors.dark.success : Colors.dark.error }
             ]}>
-              {(securityMetrics.entropyLevel * 100).toFixed(1)}%
+              {((safeSecurityMetrics.entropyLevel || 0) * 100).toFixed(1)}%
             </Text>
           </View>
           
@@ -180,9 +219,9 @@ export default function MetricsPanel({
             <Text style={styles.securityLabel}>Quantum Valid</Text>
             <Text style={[
               styles.securityValue,
-              { color: securityMetrics.quantumSignatureValid ? Colors.dark.success : Colors.dark.error }
+              { color: safeSecurityMetrics.quantumSignatureValid ? Colors.dark.success : Colors.dark.error }
             ]}>
-              {securityMetrics.quantumSignatureValid ? 'YES' : 'NO'}
+              {safeSecurityMetrics.quantumSignatureValid ? 'YES' : 'NO'}
             </Text>
           </View>
           
@@ -190,9 +229,9 @@ export default function MetricsPanel({
             <Text style={styles.securityLabel}>Hash Integrity</Text>
             <Text style={[
               styles.securityValue,
-              { color: securityMetrics.hashIntegrity ? Colors.dark.success : Colors.dark.error }
+              { color: safeSecurityMetrics.hashIntegrity ? Colors.dark.success : Colors.dark.error }
             ]}>
-              {securityMetrics.hashIntegrity ? 'VALID' : 'INVALID'}
+              {safeSecurityMetrics.hashIntegrity ? 'VALID' : 'INVALID'}
             </Text>
           </View>
           
@@ -200,16 +239,16 @@ export default function MetricsPanel({
             <Text style={styles.securityLabel}>Blockchain</Text>
             <Text style={[
               styles.securityValue,
-              { color: securityMetrics.blockchainConsistency ? Colors.dark.success : Colors.dark.error }
+              { color: safeSecurityMetrics.blockchainConsistency ? Colors.dark.success : Colors.dark.error }
             ]}>
-              {securityMetrics.blockchainConsistency ? 'SYNC' : 'DESYNC'}
+              {safeSecurityMetrics.blockchainConsistency ? 'SYNC' : 'DESYNC'}
             </Text>
           </View>
         </View>
       </View>
 
       {/* Current Node Information */}
-      {currentSignature && (
+      {currentSignature && currentSignature.currentNode && (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Sparkles size={20} color={Colors.dark.primary} />
@@ -219,23 +258,23 @@ export default function MetricsPanel({
           <View style={styles.nodeContainer}>
             <View style={styles.nodeRow}>
               <Text style={styles.nodeLabel}>Symbol:</Text>
-              <Text style={styles.nodeValue}>{currentSignature.currentNode.symbol}</Text>
+              <Text style={styles.nodeValue}>{currentSignature.currentNode.symbol || 'N/A'}</Text>
             </View>
             
             <View style={styles.nodeRow}>
               <Text style={styles.nodeLabel}>Meaning:</Text>
-              <Text style={styles.nodeValue}>{currentSignature.currentNode.meaning}</Text>
+              <Text style={styles.nodeValue}>{currentSignature.currentNode.meaning || 'N/A'}</Text>
             </View>
             
             <View style={styles.nodeRow}>
               <Text style={styles.nodeLabel}>Depth:</Text>
-              <Text style={styles.nodeValue}>{currentSignature.currentNode.depth}</Text>
+              <Text style={styles.nodeValue}>{currentSignature.currentNode.depth || 0}</Text>
             </View>
             
             <View style={styles.nodeRow}>
               <Text style={styles.nodeLabel}>Phase Intensity:</Text>
-              <Text style={[styles.nodeValue, { color: getQuantumColor(currentSignature.currentNode.phase_intensity) }]}>
-                {(currentSignature.currentNode.phase_intensity * 100).toFixed(1)}%
+              <Text style={[styles.nodeValue, { color: getQuantumColor(currentSignature.currentNode.phase_intensity || 0) }]}>
+                {((currentSignature.currentNode.phase_intensity || 0) * 100).toFixed(1)}%
               </Text>
             </View>
           </View>
