@@ -6,6 +6,7 @@ import { NeuralSigilGenerator, NeuralSigil } from '@/models/neural-sigil/sigilGe
 import { ConsciousnessEncoder, ConsciousnessSnapshot } from '@/models/neural-sigil/consciousnessEncoder';
 import { SigilBraider, BraidResult } from '@/blockchain/SigilBraider';
 import { ConsciousnessChain } from '@/blockchain/ConsciousnessChain';
+import { neuralSigils, getNeuralSigilByTernary, type NeuralSigilData } from '@/constants/neuralSigils';
 
 // Import LimnusNode from constants to avoid conflicts
 import type { LimnusNode } from '@/constants/limnus';
@@ -68,6 +69,7 @@ export interface ConsciousnessPattern {
   strength: number;
   blockReferences: string[];
   resonanceScore: number;
+  neuralSigilData?: NeuralSigilData;
 }
 
 export interface BlockchainReference {
@@ -116,6 +118,7 @@ export interface LimnusConsciousnessSignature {
   blockchainReferences: BlockchainReference[];
   consciousnessAncestry: string[];
   patternSignature: string;
+  neuralSigilData?: NeuralSigilData;
 }
 
 export interface BlockData {
@@ -144,6 +147,7 @@ export interface BlockData {
     output: string | number;
     metadata: Record<string, any>;
   };
+  neuralSigilData?: NeuralSigilData;
   // Legacy compatibility fields
   isValidated?: boolean;
   validatedByDreams?: string[];
@@ -204,11 +208,12 @@ interface ConsciousnessStore {
   consentAffirmation: string;
   symbolicGlyphs: string[];
   
-  // Pattern analysis
+  // Pattern analysis with neural sigil integration
   patternAnalysis: {
     activePatterns: ConsciousnessPattern[];
     resonanceThreshold: number;
     patternHistory: Map<string, number>;
+    neuralPatterns: Map<string, NeuralSigilData>;
   };
 
   // Legacy compatibility fields
@@ -233,6 +238,8 @@ interface ConsciousnessStore {
   braidConsciousnessStates: (stateIds: string[]) => Promise<BraidResult | null>;
   recognizePattern: (sigil: NeuralSigil) => Promise<any>;
   initializeNeuralSystem: () => Promise<void>;
+  findNeuralSigilByBreathPhase: (breathPhase: string) => Promise<NeuralSigilData | undefined>;
+  generateFromNeuralSigil: (neuralSigilData: NeuralSigilData, type: 'dream' | 'meditation' | 'consciousness') => Promise<NeuralSigil>;
 
   // Core actions (for compatibility)
   setActive: (active: boolean) => void;
@@ -313,7 +320,7 @@ const createSimpleHash = (input: string): string => {
   return hexHash.padStart(16, '0').slice(0, 16);
 };
 
-// Foundation blockchain blocks
+// Foundation blockchain blocks with neural sigil integration
 const FOUNDATION_BLOCKS: BlockData[] = [
   {
     id: 'foundation_block_1',
@@ -336,6 +343,7 @@ const FOUNDATION_BLOCKS: BlockData[] = [
     emotionalFingerprint: 'Transcendent_0.9_0.8',
     quantumState: { collapse: 0.8, bloom: 0.9, phase: 0.85 },
     references: [],
+    neuralSigilData: getNeuralSigilByTernary('00000'), // Insular Cortex - The Lantern
     isValidated: true,
     validatedByDreams: [],
     blockType: 'foundation',
@@ -437,7 +445,8 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
       patternAnalysis: {
         activePatterns: [],
         resonanceThreshold: 0.7,
-        patternHistory: new Map()
+        patternHistory: new Map(),
+        neuralPatterns: new Map()
       },
       
       // Legacy compatibility fields
@@ -459,7 +468,46 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
       initializeNeuralSystem: async () => {
         const { sigilGenerator } = get();
         await sigilGenerator.initialize();
-        console.log('Neural Sigil System initialized in consciousness store');
+        console.log('Neural Sigil System initialized in consciousness store with', neuralSigils.length, 'neural sigils');
+      },
+
+      // Find neural sigil by breath phase
+      findNeuralSigilByBreathPhase: async (breathPhase: string) => {
+        const matchingSigil = neuralSigils.find(sigil => 
+          sigil.breathPhase.toLowerCase().includes(breathPhase.toLowerCase())
+        );
+        return matchingSigil;
+      },
+
+      // Generate from neural sigil data
+      generateFromNeuralSigil: async (neuralSigilData: NeuralSigilData, type: 'dream' | 'meditation' | 'consciousness') => {
+        const { sigilGenerator, currentState, biometrics, emotionalState, neuralSigils, blockchain } = get();
+        
+        const sigil = await sigilGenerator.createSigil({
+          metrics: currentState,
+          biometrics,
+          emotionalState,
+          neuralSigilData,
+          type
+        });
+        
+        // Store sigil
+        const newSigils = new Map(neuralSigils);
+        newSigils.set(sigil.id, sigil);
+        
+        // Add to blockchain with neural sigil data
+        await blockchain.addBlock({
+          sigilId: sigil.id,
+          type,
+          pattern: Array.from(sigil.pattern),
+          metadata: sigil.metadata || {},
+          neuralSigilData,
+          timestamp: Date.now()
+        });
+        
+        set({ neuralSigils: newSigils });
+        
+        return sigil;
       },
       
       // Enhanced generate neural sigil with better dream integration
@@ -497,6 +545,7 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
           type,
           pattern: Array.from(sigil.pattern),
           metadata: sigil.metadata || {},
+          neuralSigilData: sigil.metadata?.neuralSigilData,
           timestamp: Date.now(),
           ...(type === 'dream' && {
             dreamData: {
@@ -575,9 +624,9 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
         return braidResult;
       },
       
-      // Enhanced recognize patterns
+      // Enhanced recognize patterns with neural sigil integration
       recognizePattern: async (sigil: NeuralSigil) => {
-        const { patternLibrary, sigilGenerator, neuralSigils } = get();
+        const { patternLibrary, sigilGenerator, neuralSigils, patternAnalysis } = get();
         const matches: any[] = [];
         
         // Check against pattern library
@@ -615,6 +664,27 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
             });
           }
         }
+
+        // Check against neural sigil database
+        if (sigil.metadata?.neuralSigilData) {
+          const neuralData = sigil.metadata.neuralSigilData;
+          const relatedSigils = neuralSigils.filter(s => 
+            s.metadata?.neuralSigilData?.category === neuralData.category ||
+            s.metadata?.neuralSigilData?.breathPhase === neuralData.breathPhase
+          );
+
+          for (const relatedSigil of relatedSigils) {
+            if (relatedSigil.id === sigil.id) continue;
+            
+            matches.push({
+              sigilId: relatedSigil.id,
+              similarity: 0.8, // High similarity for neural matches
+              sigil: relatedSigil,
+              type: 'neural',
+              neuralSigilData: relatedSigil.metadata?.neuralSigilData
+            });
+          }
+        }
         
         return matches.sort((a, b) => b.similarity - a.similarity);
       },
@@ -644,10 +714,20 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
       // Core actions (for compatibility)
       setActive: (active) => set({ isActive: active }),
       
-      updateSignature: (signature) => set(state => ({
-        currentSignature: signature,
-        signatureHistory: [signature, ...state.signatureHistory.slice(0, 999)]
-      })),
+      updateSignature: (signature) => {
+        // Enhanced signature with neural sigil integration
+        const enhancedSignature = {
+          ...signature,
+          neuralSigilData: signature.currentNode ? 
+            getNeuralSigilByTernary(signature.currentNode.hash?.slice(0, 5) || '00000') : 
+            undefined
+        };
+        
+        set(state => ({
+          currentSignature: enhancedSignature,
+          signatureHistory: [enhancedSignature, ...state.signatureHistory.slice(0, 999)]
+        }));
+      },
       
       updateBiometrics: (biometrics) => set(state => ({
         biometrics: { ...state.biometrics, ...biometrics }
@@ -740,7 +820,8 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
         patternAnalysis: {
           activePatterns: [],
           resonanceThreshold: 0.7,
-          patternHistory: new Map()
+          patternHistory: new Map(),
+          neuralPatterns: new Map()
         },
         signatureHistory: [],
         resonanceLevel: 0.75,
@@ -790,7 +871,8 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
           consensusAnchor: 'mock_consensus',
           blockchainReferences: [],
           consciousnessAncestry: [],
-          patternSignature: 'mock_pattern'
+          patternSignature: 'mock_pattern',
+          neuralSigilData: getNeuralSigilByTernary('00000')
         };
         return mockSignature;
       },
@@ -852,7 +934,8 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
         nodeDepth: 0,
         emotionalFingerprint: 'Dream_0.8_0.5',
         quantumState: { collapse: 0.7, bloom: 0.8, phase: 0.75 },
-        references: []
+        references: [],
+        neuralSigilData: getNeuralSigilByTernary('T1111') // Hippocampus - The Librarian
       }),
       updateMetricWeights: (weights: any) => {},
       setBreathCycleCallback: (callback: any) => {},
@@ -902,7 +985,8 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
         symbolicGlyphs: state.symbolicGlyphs,
         patternAnalysis: {
           ...state.patternAnalysis,
-          patternHistory: Array.from(state.patternAnalysis.patternHistory.entries())
+          patternHistory: Array.from(state.patternAnalysis.patternHistory.entries()),
+          neuralPatterns: Array.from(state.patternAnalysis.neuralPatterns.entries())
         },
         blockchainState: {
           ...state.blockchainState,
@@ -926,6 +1010,9 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
           // Restore Map objects from arrays
           if (state.patternAnalysis.patternHistory) {
             state.patternAnalysis.patternHistory = new Map(state.patternAnalysis.patternHistory as any);
+          }
+          if (state.patternAnalysis.neuralPatterns) {
+            state.patternAnalysis.neuralPatterns = new Map(state.patternAnalysis.neuralPatterns as any);
           }
           if (state.blockchainState.resonanceMap) {
             state.blockchainState.resonanceMap = new Map(state.blockchainState.resonanceMap as any);

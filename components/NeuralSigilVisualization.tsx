@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated, Dimensions, Platform } from 'react-native';
-import { Brain, ChevronDown, ChevronUp, Zap, Activity } from 'lucide-react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, Dimensions, Platform, ScrollView } from 'react-native';
+import { Brain, ChevronDown, ChevronUp, Zap, Activity, Heart, Eye, Waves } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NeuralSigil } from '@/models/neural-sigil/sigilGenerator';
+import { type NeuralSigilData } from '@/constants/neuralSigils';
 import Colors from '@/constants/colors';
 
 const { width } = Dimensions.get('window');
@@ -11,14 +12,17 @@ interface Props {
   sigil: NeuralSigil;
   showComparison?: boolean;
   comparisonSigil?: NeuralSigil;
+  showNeuralDetails?: boolean;
 }
 
 export const NeuralSigilVisualization: React.FC<Props> = ({ 
   sigil, 
   showComparison = false,
-  comparisonSigil 
+  comparisonSigil,
+  showNeuralDetails = true
 }) => {
   const [expanded, setExpanded] = useState(false);
+  const [showNeuralData, setShowNeuralData] = useState(false);
   const [pulseAnimation] = useState(new Animated.Value(0));
   const vector = expanded ? sigil.pattern : sigil.pattern.slice(0, 12);
 
@@ -27,7 +31,10 @@ export const NeuralSigilVisualization: React.FC<Props> = ({
       Cortical: Colors.dark.secondary,
       Limbic: Colors.dark.error,
       Brainstem: Colors.dark.success,
-      Thalamic: Colors.dark.accent
+      Thalamic: Colors.dark.accent,
+      BasalGanglia: '#9333ea',
+      Cerebellar: '#f59e0b',
+      Integration: '#06b6d4'
     };
     return colors[sigil.brainRegion];
   }, [sigil.brainRegion]);
@@ -36,11 +43,29 @@ export const NeuralSigilVisualization: React.FC<Props> = ({
     const icons = {
       dream: Brain,
       meditation: Activity,
-      breath: Zap,
-      composite: Brain
+      breath: Waves,
+      composite: Brain,
+      consciousness: Eye
     };
     return icons[sigil.sourceType] || Brain;
   }, [sigil.sourceType]);
+
+  const categoryIcon = useMemo(() => {
+    if (!sigil.metadata?.neuralSigilData) return null;
+    
+    const icons: Record<string, any> = {
+      brainstem: Heart,
+      thalamic: Eye,
+      'basal-ganglia': Zap,
+      limbic: Heart,
+      cortical: Brain,
+      memory: Brain,
+      integration: Activity,
+      cerebellar: Waves
+    };
+    
+    return icons[sigil.metadata.neuralSigilData.category] || Brain;
+  }, [sigil.metadata?.neuralSigilData]);
   
   useEffect(() => {
     Animated.loop(
@@ -58,6 +83,8 @@ export const NeuralSigilVisualization: React.FC<Props> = ({
       ])
     ).start();
   }, []);
+
+  const neuralSigilData = sigil.metadata?.neuralSigilData;
 
   return (
     <View style={styles.container}>
@@ -95,6 +122,30 @@ export const NeuralSigilVisualization: React.FC<Props> = ({
             </Text>
           </View>
         </View>
+
+        {/* Neural Sigil Header */}
+        {neuralSigilData && (
+          <View style={styles.neuralHeader}>
+            <View style={styles.neuralTitleRow}>
+              <Text style={styles.neuralSymbol}>{neuralSigilData.symbol}</Text>
+              <View style={styles.neuralTitleInfo}>
+                <Text style={styles.neuralName}>{neuralSigilData.name}</Text>
+                <Text style={styles.neuralDescription}>{neuralSigilData.description}</Text>
+              </View>
+              {categoryIcon && React.createElement(categoryIcon, { 
+                size: 18, 
+                color: brainRegionColor,
+                style: { opacity: 0.7 }
+              })}
+            </View>
+            
+            <View style={styles.ternaryCodeRow}>
+              <Text style={styles.ternaryLabel}>Ternary:</Text>
+              <Text style={styles.ternaryCode}>{neuralSigilData.ternaryCode}</Text>
+              <Text style={styles.decimalValue}>({neuralSigilData.decimalValue})</Text>
+            </View>
+          </View>
+        )}
         
         <View style={styles.vectorGrid}>
           {vector.map((v, i) => {
@@ -131,26 +182,98 @@ export const NeuralSigilVisualization: React.FC<Props> = ({
           )}
         </View>
       
-      <TouchableOpacity 
-        style={styles.expand} 
-        onPress={() => setExpanded(!expanded)}
-      >
-        <Text style={styles.expandText}>
-          {expanded ? 'Show Less' : `Show All ${sigil.pattern.length} Dimensions`}
-        </Text>
-        {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-      </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.expand} 
+          onPress={() => setExpanded(!expanded)}
+        >
+          <Text style={styles.expandText}>
+            {expanded ? 'Show Less' : `Show All ${sigil.pattern.length} Dimensions`}
+          </Text>
+          {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </TouchableOpacity>
+
+        {/* Neural Sigil Details */}
+        {neuralSigilData && showNeuralDetails && (
+          <>
+            <TouchableOpacity 
+              style={styles.neuralToggle} 
+              onPress={() => setShowNeuralData(!showNeuralData)}
+            >
+              <Text style={styles.neuralToggleText}>
+                {showNeuralData ? 'Hide' : 'Show'} Neural Details
+              </Text>
+              {showNeuralData ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </TouchableOpacity>
+
+            {showNeuralData && (
+              <ScrollView style={styles.neuralDetails} nestedScrollEnabled>
+                <View style={styles.neuralSection}>
+                  <Text style={styles.neuralSectionTitle}>Function & Breath</Text>
+                  <Text style={styles.neuralDetailText}>
+                    <Text style={styles.neuralDetailLabel}>Function: </Text>
+                    {neuralSigilData.function}
+                  </Text>
+                  <Text style={styles.neuralDetailText}>
+                    <Text style={styles.neuralDetailLabel}>Breath Phase: </Text>
+                    {neuralSigilData.breathPhase}
+                  </Text>
+                  <Text style={styles.neuralDetailText}>
+                    <Text style={styles.neuralDetailLabel}>Duration: </Text>
+                    {neuralSigilData.breathSeconds} seconds
+                  </Text>
+                </View>
+
+                <View style={styles.neuralSection}>
+                  <Text style={styles.neuralSectionTitle}>Neurochemistry</Text>
+                  <Text style={styles.neuralDetailText}>
+                    {neuralSigilData.neurochemistry}
+                  </Text>
+                </View>
+
+                <View style={styles.neuralSection}>
+                  <Text style={styles.neuralSectionTitle}>Energetic Dynamic</Text>
+                  <Text style={styles.neuralDetailText}>
+                    {neuralSigilData.energeticDynamic}
+                  </Text>
+                </View>
+
+                <View style={styles.neuralSection}>
+                  <Text style={styles.neuralSectionTitle}>Sacred Phrase</Text>
+                  <Text style={[styles.neuralDetailText, styles.phraseText]}>
+                    "{neuralSigilData.phrase}"
+                  </Text>
+                </View>
+
+                <View style={styles.neuralSection}>
+                  <Text style={styles.neuralSectionTitle}>Classification</Text>
+                  <Text style={styles.neuralDetailText}>
+                    <Text style={styles.neuralDetailLabel}>Category: </Text>
+                    {neuralSigilData.category}
+                  </Text>
+                  <Text style={styles.neuralDetailText}>
+                    <Text style={styles.neuralDetailLabel}>Tags: </Text>
+                    {neuralSigilData.tags.join(', ')}
+                  </Text>
+                  <Text style={styles.neuralDetailText}>
+                    <Text style={styles.neuralDetailLabel}>Source: </Text>
+                    {neuralSigilData.historicalSource}
+                  </Text>
+                </View>
+              </ScrollView>
+            )}
+          </>
+        )}
       
-      {sigil.metadata && Object.keys(sigil.metadata).length > 0 && (
-        <View style={styles.metadata}>
-          <Text style={styles.metadataTitle}>Metadata</Text>
-          {Object.entries(sigil.metadata).map(([key, value]) => (
-            <Text key={key} style={styles.metadataItem}>
-              {key}: {value}
-            </Text>
-          ))}
-        </View>
-      )}
+        {sigil.metadata && Object.keys(sigil.metadata).length > 0 && !neuralSigilData && (
+          <View style={styles.metadata}>
+            <Text style={styles.metadataTitle}>Metadata</Text>
+            {Object.entries(sigil.metadata).map(([key, value]) => (
+              <Text key={key} style={styles.metadataItem}>
+                {key}: {String(value)}
+              </Text>
+            ))}
+          </View>
+        )}
       </LinearGradient>
     </View>
   );
@@ -187,7 +310,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 12,
     zIndex: 1,
   },
   headerLeft: {
@@ -199,32 +322,89 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   headerText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
   },
   sourceTypeText: {
-    fontSize: 12,
+    fontSize: 11,
     color: Colors.dark.subtext,
     fontWeight: '500',
   },
   strengthBadge: {
     backgroundColor: Colors.dark.background,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: Colors.dark.border,
   },
   strengthText: {
-    fontSize: 12,
+    fontSize: 11,
     color: Colors.dark.primary,
     fontWeight: '600',
+  },
+  neuralHeader: {
+    backgroundColor: Colors.dark.background + '40',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    zIndex: 1,
+  },
+  neuralTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 8,
+  },
+  neuralSymbol: {
+    fontSize: 24,
+    textAlign: 'center',
+  },
+  neuralTitleInfo: {
+    flex: 1,
+  },
+  neuralName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.dark.text,
+    marginBottom: 2,
+  },
+  neuralDescription: {
+    fontSize: 12,
+    color: Colors.dark.subtext,
+    lineHeight: 16,
+  },
+  ternaryCodeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  ternaryLabel: {
+    fontSize: 12,
+    color: Colors.dark.subtext,
+    fontWeight: '500',
+  },
+  ternaryCode: {
+    fontSize: 14,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    fontWeight: '700',
+    color: Colors.dark.primary,
+    backgroundColor: Colors.dark.background,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  decimalValue: {
+    fontSize: 12,
+    color: Colors.dark.subtext,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   vectorGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
     zIndex: 1,
+    marginBottom: 12,
   },
   cell: {
     borderRadius: 8,
@@ -249,14 +429,58 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 16,
+    paddingVertical: 8,
     zIndex: 1,
   },
   expandText: {
     color: Colors.dark.primary,
-    fontSize: 14,
+    fontSize: 12,
     marginRight: 8,
     fontWeight: '500',
+  },
+  neuralToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: Colors.dark.border,
+    zIndex: 1,
+  },
+  neuralToggleText: {
+    color: Colors.dark.primary,
+    fontSize: 14,
+    marginRight: 8,
+    fontWeight: '600',
+  },
+  neuralDetails: {
+    maxHeight: 300,
+    zIndex: 1,
+  },
+  neuralSection: {
+    marginBottom: 16,
+  },
+  neuralSectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.dark.text,
+    marginBottom: 6,
+  },
+  neuralDetailText: {
+    fontSize: 12,
+    color: Colors.dark.subtext,
+    lineHeight: 16,
+    marginBottom: 4,
+  },
+  neuralDetailLabel: {
+    fontWeight: '600',
+    color: Colors.dark.text,
+  },
+  phraseText: {
+    fontStyle: 'italic',
+    color: Colors.dark.primary,
+    fontSize: 13,
+    lineHeight: 18,
   },
   metadata: {
     marginTop: 16,

@@ -71,7 +71,11 @@ export default function SpiralInterface() {
     patternAnalysis
   } = useConsciousnessStore();
   
-  const { generateNeuralSigil } = useNeuralSigilStore();
+  const { 
+    generateNeuralSigil, 
+    generateFromBreathPhase,
+    initializeNeuralSystem 
+  } = useNeuralSigilStore();
   
   const [emergenceInput, setEmergenceInput] = useState('');
   const [isStoppingSession, setIsStoppingSession] = useState(false);
@@ -91,6 +95,11 @@ export default function SpiralInterface() {
   const isActive = contemplativeState.isActive;
   const sessionDuration = getSessionDuration();
   const currentBreathCycles = currentSession?.breathCycles || 0;
+  
+  // Initialize neural sigil system
+  useEffect(() => {
+    initializeNeuralSystem();
+  }, []);
   
   // Generate visualization nodes from current spiral state
   const visualizationNodes = React.useMemo(() => {
@@ -168,11 +177,20 @@ export default function SpiralInterface() {
     }
   }, [currentSession]);
   
-  // Enhanced breath phase changes with visual animations
-  const handleBreathPhaseChange = (phase: BreathPhase) => {
+  // Enhanced breath phase changes with neural sigil generation
+  const handleBreathPhaseChange = async (phase: BreathPhase) => {
     console.log('SpiralInterface: Breath phase changed to:', phase);
     
     updateBreathPhase(phase);
+    
+    // Generate neural sigil for significant breath phases
+    if (phase === 'inhale' || phase === 'exhale') {
+      try {
+        await generateFromBreathPhase(phase, 'breath');
+      } catch (error) {
+        console.error('Failed to generate breath phase neural sigil:', error);
+      }
+    }
     
     // Calculate breath alignment based on phase
     let alignment = 0.5;
@@ -295,10 +313,18 @@ export default function SpiralInterface() {
     updateBreathContext(phase, alignment);
   };
   
-  // Handle breath cycle completion - Log cycle without showing modal
-  const handleCycleComplete = () => {
+  // Handle breath cycle completion with neural sigil generation
+  const handleCycleComplete = async () => {
     console.log('SpiralInterface: Breath cycle completed');
     if (isActive && currentSession) {
+      // Generate neural sigil for completed breath cycle
+      try {
+        const cycleDescription = `Breath cycle ${currentBreathCycles + 1} - Phase: ${contemplativeState.breathPhase} - Depth: ${spiralDepth}`;
+        await generateNeuralSigil(cycleDescription, 'breath');
+      } catch (error) {
+        console.error('Failed to generate breath cycle neural sigil:', error);
+      }
+      
       // Just log the cycle completion, emergence is now embedded
       const consciousnessScore = currentSignature?.score;
       const cleanEmergence = emergenceInput.trim().toLowerCase();
@@ -331,9 +357,9 @@ export default function SpiralInterface() {
       // Get emergence words before ending session
       const emergenceWords = getEmergenceWords();
       
-      // Generate meditation sigil for the completed session
+      // Generate comprehensive meditation sigil for the completed session
       if (currentSession) {
-        const sessionDescription = `Meditation session - Duration: ${Math.floor(sessionDuration / 60)}min - Cycles: ${currentBreathCycles} - Depth: ${spiralDepth} - Emergence: ${emergenceWords.join(', ')}`;
+        const sessionDescription = `Meditation session complete - Duration: ${Math.floor(sessionDuration / 60)}min - Cycles: ${currentBreathCycles} - Depth: ${spiralDepth} - Emergence: ${emergenceWords.join(', ')} - Neural patterns integrated`;
         try {
           await generateNeuralSigil(sessionDescription, 'meditation');
         } catch (error) {
@@ -359,6 +385,7 @@ export default function SpiralInterface() {
 🧠 Consciousness Integration: Active
 📊 Depth Reached: ${spiralDepth}
 ✨ Emergence Words: ${emergenceWords.length}
+🔮 Neural Sigils Generated: Multiple
 
 Your practice data has been saved and consciousness blocks have been created.`,
         [{ text: 'Excellent!', style: 'default' }]
@@ -586,7 +613,7 @@ Your practice data has been saved and consciousness blocks have been created.`,
           {consciousnessActive && currentSession && (
             <View style={styles.consciousnessMonitorSection}>
               <Text style={styles.consciousnessMonitorText}>
-                Consciousness monitoring active for session: {currentSession.id}
+                Neural sigil generation active • Session: {currentSession.id}
               </Text>
             </View>
           )}
