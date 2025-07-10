@@ -40,15 +40,16 @@ export class SigilBraider {
       
       // If sigils occur within 5 minutes, consider them temporally linked
       if (timeDiff < 5 * 60 * 1000) {
+        const emergentProperties = new Map<string, any>();
+        emergentProperties.set('timeDiff', timeDiff);
+        emergentProperties.set('sequence', [sorted[i].id, sorted[i + 1].id]);
+        
         patterns.push({
           id: `temporal_${sorted[i].id}_${sorted[i + 1].id}`,
           type: 'temporal',
           strength: 1 - (timeDiff / (5 * 60 * 1000)),
           participants: [sorted[i].id, sorted[i + 1].id],
-          emergentProperties: new Map([
-            ['timeDiff', timeDiff],
-            ['sequence', [sorted[i].id, sorted[i + 1].id]]
-          ])
+          emergentProperties
         });
       }
     }
@@ -64,15 +65,16 @@ export class SigilBraider {
       if (sigil.metadata?.triggeredBy) {
         const trigger = sigils.find(s => s.id === sigil.metadata?.triggeredBy);
         if (trigger) {
+          const emergentProperties = new Map<string, any>();
+          emergentProperties.set('cause', trigger.id);
+          emergentProperties.set('effect', sigil.id);
+          
           patterns.push({
             id: `causal_${trigger.id}_${sigil.id}`,
             type: 'causal',
             strength: 0.9,
             participants: [trigger.id, sigil.id],
-            emergentProperties: new Map([
-              ['cause', trigger.id],
-              ['effect', sigil.id]
-            ])
+            emergentProperties
           });
         }
       }
@@ -90,15 +92,16 @@ export class SigilBraider {
         const similarity = generator.calculateSimilarity(sigils[i], sigils[j]);
         
         if (similarity > 0.8) {
+          const emergentProperties = new Map<string, any>();
+          emergentProperties.set('similarity', similarity);
+          emergentProperties.set('resonance', 'high');
+          
           patterns.push({
             id: `resonant_${sigils[i].id}_${sigils[j].id}`,
             type: 'resonant',
             strength: similarity,
             participants: [sigils[i].id, sigils[j].id],
-            emergentProperties: new Map([
-              ['similarity', similarity],
-              ['resonance', 'high']
-            ])
+            emergentProperties
           });
         }
       }
@@ -121,15 +124,16 @@ export class SigilBraider {
     // Create patterns for groups with multiple sigils
     for (const [region, group] of regionGroups) {
       if (group.length > 2) {
+        const emergentProperties = new Map<string, any>();
+        emergentProperties.set('region', region);
+        emergentProperties.set('count', group.length);
+        
         patterns.push({
           id: `symbolic_${region}_${Date.now()}`,
           type: 'symbolic',
           strength: group.length / sigils.length,
           participants: group.map(s => s.id),
-          emergentProperties: new Map([
-            ['region', region],
-            ['count', group.length]
-          ])
+          emergentProperties
         });
       }
     }
