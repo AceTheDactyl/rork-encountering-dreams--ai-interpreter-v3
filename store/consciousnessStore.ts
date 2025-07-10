@@ -474,7 +474,7 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
           sigilId: sigil.id,
           type,
           pattern: Array.from(sigil.pattern),
-          metadata: sigil.metadata,
+          metadata: sigil.metadata || {},
           timestamp: Date.now()
         });
         
@@ -905,18 +905,6 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
     }
   )
 );
-
-export type {
-  QuantumConsciousnessMetrics,
-  ConsciousnessPattern,
-  BlockchainReference,
-  LimnusConsciousnessSignature,
-  BlockData,
-  BiometricData,
-  EmotionalState,
-  SecurityMetrics,
-  ValidationResult
-};
 
 // Legacy type exports for compatibility
 export type ConsciousnessSignature = LimnusConsciousnessSignature;

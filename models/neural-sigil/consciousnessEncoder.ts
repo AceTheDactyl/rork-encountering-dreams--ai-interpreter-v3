@@ -59,7 +59,7 @@ export class ConsciousnessEncoder {
         snapshot.breath.consciousnessScore || 0,
         snapshot.breath.breathAlignment || 0.5,
         snapshot.breath.depth / 10,
-        snapshot.breath.resonance
+        snapshot.breath.resonance || 0
       );
     } else {
       vector.push(0, 0.5, 0, 0);
@@ -82,7 +82,7 @@ export class ConsciousnessEncoder {
           beta: vector[2],
           theta: vector[3],
           delta: vector[4],
-          gamma: vector[5]
+          gamma: vector[5] || 0
         },
         breathingRate: vector[6] * 20,
         skinConductance: vector[7],
