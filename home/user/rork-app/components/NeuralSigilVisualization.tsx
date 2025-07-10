@@ -23,7 +23,10 @@ export const NeuralSigilVisualization: React.FC<Props> = ({
       Cortical: '#3498db',
       Limbic: '#e74c3c',
       Brainstem: '#2ecc71',
-      Thalamic: '#f1c40f'
+      Thalamic: '#f1c40f',
+      BasalGanglia: '#9333ea',
+      Cerebellar: '#f59e0b',
+      Integration: '#06b6d4'
     };
     return colors[sigil.brainRegion];
   }, [sigil.brainRegion]);
@@ -41,7 +44,7 @@ export const NeuralSigilVisualization: React.FC<Props> = ({
       </View>
       
       <View style={styles.vectorGrid}>
-        {vector.map((v, i) => (
+        {Array.from(vector).map((v, i) => (
           <View key={i} style={styles.cell}>
             <Text style={styles.cellText}>{v.toFixed(3)}</Text>
           </View>
