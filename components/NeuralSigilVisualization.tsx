@@ -88,7 +88,7 @@ export const NeuralSigilVisualization: React.FC<Props> = ({
 
   // Create pattern visualization cells
   const patternCells = useMemo(() => {
-    return Array.from(vector).map((v, i) => {
+    return vector.map((v, i) => {
       const intensity = Math.abs(v);
       const isPositive = v > 0;
       return (
