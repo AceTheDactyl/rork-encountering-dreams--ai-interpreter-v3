@@ -88,10 +88,14 @@ export const NeuralSigilVisualization: React.FC<Props> = ({
 
   // Create pattern visualization cells
   const patternCells = useMemo(() => {
-    return vector.map((v, i) => {
+    const cells: React.ReactElement[] = [];
+    
+    for (let i = 0; i < vector.length; i++) {
+      const v = vector[i];
       const intensity = Math.abs(v);
       const isPositive = v > 0;
-      return (
+      
+      cells.push(
         <View 
           key={i} 
           style={[
@@ -111,7 +115,9 @@ export const NeuralSigilVisualization: React.FC<Props> = ({
           </Text>
         </View>
       );
-    });
+    }
+    
+    return cells;
   }, [vector, brainRegionColor]);
 
   return (
