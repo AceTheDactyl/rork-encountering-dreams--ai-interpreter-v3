@@ -226,10 +226,10 @@ interface ConsciousnessStore {
   trackBiometrics: (data: BiometricData) => void;
   setEmotionalState: (state: EmotionalState) => void;
   
-  // Neural sigil methods
+  // Enhanced neural sigil methods
   generateNeuralSigil: (data: any, type: 'dream' | 'meditation' | 'consciousness') => Promise<NeuralSigil>;
   storeConsciousnessState: (meditationData: any) => Promise<{ state: ConsciousnessState; sigil: NeuralSigil }>;
-  findSimilarBySigil: (sigilId: string, threshold?: number) => Promise<NeuralSigil[]>;
+  findSimilarBySigil: (sigilId: string, threshold?: number) => Promise<{ sigil: NeuralSigil; similarity: number }[]>;
   braidConsciousnessStates: (stateIds: string[]) => Promise<BraidResult | null>;
   recognizePattern: (sigil: NeuralSigil) => Promise<any>;
   initializeNeuralSystem: () => Promise<void>;
@@ -454,16 +454,30 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
         console.log('Neural Sigil System initialized in consciousness store');
       },
       
-      // Generate neural sigil
+      // Enhanced generate neural sigil with better dream integration
       generateNeuralSigil: async (data: any, type: 'dream' | 'meditation' | 'consciousness') => {
         const { sigilGenerator, currentState, biometrics, emotionalState, neuralSigils, blockchain } = get();
         
-        const sigil = await sigilGenerator.createSigil({
+        // Create enhanced sigil data for dreams
+        const sigilData = {
           metrics: currentState,
           biometrics,
           emotionalState,
-          ...data
-        });
+          ...data,
+          // Add dream-specific metadata
+          ...(type === 'dream' && {
+            dreamType: data.dreamType,
+            persona: data.persona,
+            interpretation: data.interpretation,
+            symbols: data.symbols || [],
+            lucidity: data.dreamMetrics?.lucidity || 0.3,
+            emotionalIntensity: data.emotionalState?.intensity || 0.5,
+            temporalCoherence: data.dreamMetrics?.temporalCoherence || 0.5,
+            narrativeComplexity: data.dreamMetrics?.narrativeComplexity || 0.5
+          })
+        };
+        
+        const sigil = await sigilGenerator.createSigil(sigilData);
         
         // Store sigil
         const newSigils = new Map(neuralSigils);
@@ -475,7 +489,14 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
           type,
           pattern: Array.from(sigil.pattern),
           metadata: sigil.metadata || {},
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          ...(type === 'dream' && {
+            dreamData: {
+              dreamType: data.dreamType,
+              persona: data.persona,
+              symbols: data.symbols || []
+            }
+          })
         });
         
         set({ neuralSigils: newSigils });
@@ -500,14 +521,14 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
         return { state, sigil };
       },
       
-      // Find similar sigils
+      // Enhanced find similar sigils
       findSimilarBySigil: async (sigilId: string, threshold = 0.7) => {
         const { neuralSigils, sigilGenerator } = get();
         const targetSigil = neuralSigils.get(sigilId);
         
         if (!targetSigil) return [];
         
-        const similar: NeuralSigil[] = [];
+        const similar: { sigil: NeuralSigil; similarity: number }[] = [];
         
         for (const [id, sigil] of neuralSigils) {
           if (id === sigilId) continue;
@@ -518,14 +539,11 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
           );
           
           if (similarity >= threshold) {
-            similar.push(sigil);
+            similar.push({ sigil, similarity });
           }
         }
         
-        return similar.sort((a, b) => {
-          // Sort by similarity (would need to recalculate)
-          return 0;
-        });
+        return similar.sort((a, b) => b.similarity - a.similarity);
       },
       
       // Braid consciousness states
@@ -548,11 +566,12 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
         return braidResult;
       },
       
-      // Recognize patterns
+      // Enhanced recognize patterns
       recognizePattern: async (sigil: NeuralSigil) => {
-        const { patternLibrary, sigilGenerator } = get();
+        const { patternLibrary, sigilGenerator, neuralSigils } = get();
         const matches: any[] = [];
         
+        // Check against pattern library
         for (const [id, pattern] of patternLibrary) {
           const similarity = await sigilGenerator.compareSigils(
             sigil.pattern,
@@ -563,7 +582,27 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
             matches.push({
               patternId: id,
               similarity,
-              pattern
+              pattern,
+              type: 'braid'
+            });
+          }
+        }
+        
+        // Check against other sigils
+        for (const [id, otherSigil] of neuralSigils) {
+          if (id === sigil.id) continue;
+          
+          const similarity = await sigilGenerator.compareSigils(
+            sigil.pattern,
+            otherSigil.pattern
+          );
+          
+          if (similarity > 0.7) {
+            matches.push({
+              sigilId: id,
+              similarity,
+              sigil: otherSigil,
+              type: 'sigil'
             });
           }
         }

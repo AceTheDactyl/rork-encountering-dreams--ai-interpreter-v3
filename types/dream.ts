@@ -13,6 +13,14 @@ export interface Dream {
   consciousnessDepth?: number;
   brainRegionActivation?: string;
   similarDreams?: string[];
+  // New neural sigil fields
+  sigilId?: string;
+  braidedWith?: string[];
+  lucidity?: number;
+  emotionalIntensity?: number;
+  symbols?: string[];
+  temporalCoherence?: number;
+  narrativeComplexity?: number;
 }
 
 export interface Persona {
