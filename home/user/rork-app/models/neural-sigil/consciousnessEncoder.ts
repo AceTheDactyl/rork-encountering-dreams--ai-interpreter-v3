@@ -42,6 +42,9 @@ export class ConsciousnessEncoder {
         snapshot.breath.consciousnessScore,
         snapshot.breath.breathAlignment || 0.5
       );
+    } else {
+      // Add default values if breath data is not available
+      vector.push(0.5, 0.5);
     }
     
     // Add coherence and depth
@@ -60,13 +63,16 @@ export class ConsciousnessEncoder {
           alpha: vector[1],
           beta: vector[2],
           theta: vector[3],
-          delta: vector[4]
+          delta: vector[4],
+          gamma: 0.2 // Add missing gamma property with default value
         },
         breathingRate: vector[5] * 20,
-        skinConductance: vector[6]
+        skinConductance: vector[6],
+        fibonacciRhythm: 0.5, // Add missing properties with defaults
+        goldenBreathing: 0.5
       },
-      coherence: vector[vector.length - 2],
-      depth: vector[vector.length - 1]
+      coherence: vector[vector.length - 2] || 0.5,
+      depth: vector[vector.length - 1] || 0.5
     };
   }
 }
