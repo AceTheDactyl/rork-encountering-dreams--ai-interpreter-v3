@@ -1,4 +1,5 @@
 import { NeuralSigil } from '@/models/neural-sigil/sigilGenerator';
+import { type NeuralSigilData } from '@/constants/neuralSigils';
 
 export interface ConsciousnessBlock {
   id: string;
@@ -9,6 +10,7 @@ export interface ConsciousnessBlock {
   timestamp: number;
   previousHash: string;
   hash: string;
+  neuralSigilData?: NeuralSigilData;
 }
 
 export class ConsciousnessChain {
@@ -18,12 +20,17 @@ export class ConsciousnessChain {
   private generateHash(block: Omit<ConsciousnessBlock, 'hash'>): string {
     const data = JSON.stringify(block);
     let hash = 0;
+    if (data.length === 0) return '0000000000000000';
+    
     for (let i = 0; i < data.length; i++) {
       const char = data.charCodeAt(i);
       hash = ((hash << 5) - hash) + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
-    return Math.abs(hash).toString(16);
+    
+    // Convert to positive hex string and pad
+    const hexHash = Math.abs(hash).toString(16);
+    return hexHash.padStart(16, '0').slice(0, 16);
   }
 
   async addBlock(blockData: Omit<ConsciousnessBlock, 'id' | 'previousHash' | 'hash'>): Promise<ConsciousnessBlock> {
@@ -56,5 +63,12 @@ export class ConsciousnessChain {
 
   findBlocksByType(type: ConsciousnessBlock['type']): ConsciousnessBlock[] {
     return this.blocks.filter(block => block.type === type);
+  }
+
+  findBlocksByNeuralSigil(neuralSigilData: NeuralSigilData): ConsciousnessBlock[] {
+    return this.blocks.filter(block => 
+      block.neuralSigilData?.id === neuralSigilData.id ||
+      block.neuralSigilData?.ternaryCode === neuralSigilData.ternaryCode
+    );
   }
 }

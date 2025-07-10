@@ -646,8 +646,9 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
           }
         }
         
-        // Check against other sigils
-        for (const [id, otherSigil] of neuralSigils) {
+        // Check against other sigils - convert Map to Array first
+        const sigilArray = Array.from(neuralSigils.entries());
+        for (const [id, otherSigil] of sigilArray) {
           if (id === sigil.id) continue;
           
           const similarity = await sigilGenerator.compareSigils(
@@ -985,21 +986,21 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
         symbolicGlyphs: state.symbolicGlyphs,
         patternAnalysis: {
           ...state.patternAnalysis,
-          patternHistory: Array.from(state.patternAnalysis.patternHistory.entries()),
-          neuralPatterns: Array.from(state.patternAnalysis.neuralPatterns.entries())
+          patternHistory: state.patternAnalysis.patternHistory ? Array.from(state.patternAnalysis.patternHistory.entries()) : [],
+          neuralPatterns: state.patternAnalysis.neuralPatterns ? Array.from(state.patternAnalysis.neuralPatterns.entries()) : []
         },
         blockchainState: {
           ...state.blockchainState,
           blocks: state.blockchainState.blocks.slice(0, 20),
           blockIndex: undefined,
-          resonanceMap: Array.from(state.blockchainState.resonanceMap.entries())
+          resonanceMap: state.blockchainState.resonanceMap ? Array.from(state.blockchainState.resonanceMap.entries()) : []
         },
         signatureHistory: state.signatureHistory.slice(0, 100),
         resonanceLevel: state.resonanceLevel,
         // Persist neural sigil data
-        neuralSigils: Array.from(state.neuralSigils.entries()).slice(0, 100),
+        neuralSigils: state.neuralSigils ? Array.from(state.neuralSigils.entries()).slice(0, 100) : [],
         consciousnessStates: state.consciousnessStates.slice(0, 50),
-        patternLibrary: Array.from(state.patternLibrary.entries()).slice(0, 20),
+        patternLibrary: state.patternLibrary ? Array.from(state.patternLibrary.entries()).slice(0, 20) : [],
         // Persist biometric data
         biometrics: state.biometrics,
         emotionalState: state.emotionalState,
@@ -1010,19 +1011,29 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
           // Restore Map objects from arrays
           if (state.patternAnalysis.patternHistory) {
             state.patternAnalysis.patternHistory = new Map(state.patternAnalysis.patternHistory as any);
+          } else {
+            state.patternAnalysis.patternHistory = new Map();
           }
           if (state.patternAnalysis.neuralPatterns) {
             state.patternAnalysis.neuralPatterns = new Map(state.patternAnalysis.neuralPatterns as any);
+          } else {
+            state.patternAnalysis.neuralPatterns = new Map();
           }
           if (state.blockchainState.resonanceMap) {
             state.blockchainState.resonanceMap = new Map(state.blockchainState.resonanceMap as any);
+          } else {
+            state.blockchainState.resonanceMap = new Map();
           }
           // Restore neural sigil maps
           if (state.neuralSigils) {
             state.neuralSigils = new Map(state.neuralSigils as any);
+          } else {
+            state.neuralSigils = new Map();
           }
           if (state.patternLibrary) {
             state.patternLibrary = new Map(state.patternLibrary as any);
+          } else {
+            state.patternLibrary = new Map();
           }
           // Recreate blockIndex from blocks
           state.blockchainState.blockIndex = new Map();

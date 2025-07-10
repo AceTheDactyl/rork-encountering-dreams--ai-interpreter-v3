@@ -86,6 +86,34 @@ export const NeuralSigilVisualization: React.FC<Props> = ({
 
   const neuralSigilData = sigil.metadata?.neuralSigilData;
 
+  // Create pattern visualization cells
+  const patternCells = useMemo(() => {
+    return Array.from(vector).map((v, i) => {
+      const intensity = Math.abs(v);
+      const isPositive = v > 0;
+      return (
+        <View 
+          key={i} 
+          style={[
+            styles.cell,
+            {
+              backgroundColor: isPositive 
+                ? brainRegionColor + Math.floor(intensity * 255).toString(16).padStart(2, '0')
+                : Colors.dark.border + Math.floor(intensity * 128).toString(16).padStart(2, '0')
+            }
+          ]}
+        >
+          <Text style={[
+            styles.cellText,
+            { color: intensity > 0.5 ? Colors.dark.background : Colors.dark.text }
+          ]}>
+            {v.toFixed(2)}
+          </Text>
+        </View>
+      );
+    });
+  }, [vector, brainRegionColor]);
+
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -148,30 +176,7 @@ export const NeuralSigilVisualization: React.FC<Props> = ({
         )}
         
         <View style={styles.vectorGrid}>
-          {vector.map((v, i) => {
-            const intensity = Math.abs(v);
-            const isPositive = v > 0;
-            return (
-              <View 
-                key={i} 
-                style={[
-                  styles.cell,
-                  {
-                    backgroundColor: isPositive 
-                      ? brainRegionColor + Math.floor(intensity * 255).toString(16).padStart(2, '0')
-                      : Colors.dark.border + Math.floor(intensity * 128).toString(16).padStart(2, '0')
-                  }
-                ]}
-              >
-                <Text style={[
-                  styles.cellText,
-                  { color: intensity > 0.5 ? Colors.dark.background : Colors.dark.text }
-                ]}>
-                  {v.toFixed(2)}
-                </Text>
-              </View>
-            );
-          })}
+          {patternCells}
           {!expanded && (
             <TouchableOpacity 
               style={[styles.cell, styles.expandCell]} 
