@@ -90,7 +90,7 @@ export class SigilBraider {
       if (timeDiff < 5 * 60 * 1000) {
         const emergentProperties: Record<string, any> = {
           timeDiff: timeDiff,
-          sequence: [sorted[i].id, sorted[i + 1].id]
+          sequenceIds: [sorted[i].id, sorted[i + 1].id]
         };
         
         patterns.push({
@@ -115,8 +115,8 @@ export class SigilBraider {
         const trigger = sigils.find(s => s.id === sigil.metadata!.triggeredBy);
         if (trigger) {
           const emergentProperties: Record<string, any> = {
-            cause: trigger.id,
-            effect: sigil.id
+            causeId: trigger.id,
+            effectId: sigil.id
           };
           
           patterns.push({
@@ -143,7 +143,7 @@ export class SigilBraider {
         if (similarity > 0.8) {
           const emergentProperties: Record<string, any> = {
             similarity: similarity,
-            resonance: 'high'
+            resonanceType: 'high'
           };
           
           patterns.push({
@@ -175,8 +175,8 @@ export class SigilBraider {
     for (const [region, group] of regionGroups) {
       if (group.length > 2) {
         const emergentProperties: Record<string, any> = {
-          region: region,
-          count: group.length
+          brainRegion: region,
+          participantCount: group.length
         };
         
         patterns.push({

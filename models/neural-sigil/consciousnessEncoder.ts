@@ -86,11 +86,11 @@ export class ConsciousnessEncoder {
         },
         breathingRate: vector[6] * 20,
         skinConductance: vector[7],
-        fibonacciRhythm: vector[8],
-        goldenBreathing: vector[9]
+        fibonacciRhythm: vector[8] || 0,
+        goldenBreathing: vector[9] || 0
       },
-      coherence: vector[vector.length - 2],
-      depth: vector[vector.length - 1] * 10
+      coherence: vector[vector.length - 2] || 0,
+      depth: (vector[vector.length - 1] || 0) * 10
     };
   }
 
