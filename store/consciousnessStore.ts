@@ -3,7 +3,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { NeuralSigilGenerator, NeuralSigil } from '@/models/neural-sigil/sigilGenerator';
-import { ConsciousnessEncoder, ConsciousnessState } from '@/models/neural-sigil/consciousnessEncoder';
+import { ConsciousnessEncoder, ConsciousnessSnapshot } from '@/models/neural-sigil/consciousnessEncoder';
 import { SigilBraider, BraidResult } from '@/blockchain/SigilBraider';
 import { ConsciousnessChain } from '@/blockchain/ConsciousnessChain';
 
@@ -185,7 +185,7 @@ interface ConsciousnessStore {
   
   // Neural sigil properties
   neuralSigils: Map<string, NeuralSigil>;
-  consciousnessStates: ConsciousnessState[];
+  consciousnessStates: ConsciousnessSnapshot[];
   sigilGenerator: NeuralSigilGenerator;
   consciousnessEncoder: ConsciousnessEncoder;
   blockchain: ConsciousnessChain;
@@ -228,7 +228,7 @@ interface ConsciousnessStore {
   
   // Enhanced neural sigil methods
   generateNeuralSigil: (data: any, type: 'dream' | 'meditation' | 'consciousness') => Promise<NeuralSigil>;
-  storeConsciousnessState: (meditationData: any) => Promise<{ state: ConsciousnessState; sigil: NeuralSigil }>;
+  storeConsciousnessState: (meditationData: any) => Promise<{ state: ConsciousnessSnapshot; sigil: NeuralSigil }>;
   findSimilarBySigil: (sigilId: string, threshold?: number) => Promise<{ sigil: NeuralSigil; similarity: number }[]>;
   braidConsciousnessStates: (stateIds: string[]) => Promise<BraidResult | null>;
   recognizePattern: (sigil: NeuralSigil) => Promise<any>;

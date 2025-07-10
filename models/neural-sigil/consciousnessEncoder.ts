@@ -2,12 +2,14 @@ import { BiometricData, EmotionalState } from '@/store/consciousnessStore';
 import { BreathCycleLog } from '@/store/limnusStore';
 
 export interface ConsciousnessSnapshot {
+  id: string;
   timestamp: number;
   biometrics: BiometricData;
   emotional: EmotionalState;
   breath?: BreathCycleLog;
   coherence: number;
   depth: number;
+  metadata?: Record<string, any>;
 }
 
 export class ConsciousnessEncoder {
@@ -73,6 +75,60 @@ export class ConsciousnessEncoder {
       },
       coherence: vector[vector.length - 2] || 0.5,
       depth: vector[vector.length - 1] || 0.5
+    };
+  }
+
+  // New method to encode consciousness state from meditation data
+  encodeConsciousnessState(meditationData: any): ConsciousnessSnapshot {
+    const timestamp = Date.now();
+    const id = `consciousness_${timestamp}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Extract or create biometric data from meditation data
+    const biometrics: BiometricData = meditationData.biometrics || {
+      heartRate: 72,
+      brainwaves: { 
+        alpha: meditationData.alpha || 0.3, 
+        beta: meditationData.beta || 0.4, 
+        theta: meditationData.theta || 0.2, 
+        delta: meditationData.delta || 0.1, 
+        gamma: meditationData.gamma || 0.05 
+      },
+      breathingRate: meditationData.breathingRate || 16,
+      skinConductance: meditationData.skinConductance || 0.5,
+      fibonacciRhythm: meditationData.fibonacciRhythm || 0.618,
+      goldenBreathing: meditationData.goldenBreathing || 0.75
+    };
+
+    // Extract or create emotional state
+    const emotional: EmotionalState = meditationData.emotionalState || {
+      hue: meditationData.emotionalHue || 'Neutral',
+      intensity: meditationData.emotionalIntensity || 0.5,
+      polarity: meditationData.emotionalPolarity || 0.0,
+      emoji: meditationData.emoji || '🧘'
+    };
+
+    // Calculate coherence and depth from meditation data
+    const coherence = meditationData.coherence || 
+      (biometrics.brainwaves.alpha + biometrics.brainwaves.theta) / 2;
+    
+    const depth = meditationData.depth || 
+      Math.min(1, (meditationData.sessionDuration || 300) / 1800); // Normalize by 30 minutes
+
+    return {
+      id,
+      timestamp,
+      biometrics,
+      emotional,
+      breath: meditationData.breath,
+      coherence,
+      depth,
+      metadata: {
+        sessionId: meditationData.sessionId,
+        sessionType: meditationData.sessionType || 'meditation',
+        duration: meditationData.sessionDuration || 0,
+        quality: meditationData.quality || 'medium',
+        notes: meditationData.notes || ''
+      }
     };
   }
 }
