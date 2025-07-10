@@ -136,8 +136,8 @@ export class SigilBraider {
       return counts;
     }, {} as Record<string, number>);
     
-    // Return most common type
-    const mostCommon = Object.entries(typeCounts).sort(([,a], [,b]) => b - a)[0];
+    // Return most common type - fix TypeScript error by properly typing the sort parameters
+    const mostCommon = Object.entries(typeCounts).sort(([,a]: [string, number], [,b]: [string, number]) => b - a)[0];
     return (mostCommon?.[0] as any) || 'consciousness';
   }
 
