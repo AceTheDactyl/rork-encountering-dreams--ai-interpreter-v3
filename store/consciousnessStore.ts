@@ -987,14 +987,14 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
         symbolicGlyphs: state.symbolicGlyphs,
         patternAnalysis: {
           ...state.patternAnalysis,
-          patternHistory: state.patternAnalysis.patternHistory ? Array.from(state.patternAnalysis.patternHistory.entries()) : [],
-          neuralPatterns: state.patternAnalysis.neuralPatterns ? Array.from(state.patternAnalysis.neuralPatterns.entries()) : []
+          patternHistory: state.patternAnalysis?.patternHistory ? Array.from(state.patternAnalysis.patternHistory.entries()) : [],
+          neuralPatterns: state.patternAnalysis?.neuralPatterns ? Array.from(state.patternAnalysis.neuralPatterns.entries()) : []
         },
         blockchainState: {
           ...state.blockchainState,
           blocks: state.blockchainState.blocks.slice(0, 20),
           blockIndex: undefined,
-          resonanceMap: state.blockchainState.resonanceMap ? Array.from(state.blockchainState.resonanceMap.entries()) : []
+          resonanceMap: state.blockchainState?.resonanceMap ? Array.from(state.blockchainState.resonanceMap.entries()) : []
         },
         signatureHistory: state.signatureHistory.slice(0, 100),
         resonanceLevel: state.resonanceLevel,
@@ -1009,49 +1009,49 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
-          // Restore Map objects from arrays
-          if (state.patternAnalysis?.patternHistory) {
-            state.patternAnalysis.patternHistory = new Map(state.patternAnalysis.patternHistory as any);
+          // Restore Map objects from arrays with proper null checks
+          if (state.patternAnalysis) {
+            if (Array.isArray(state.patternAnalysis.patternHistory)) {
+              state.patternAnalysis.patternHistory = new Map(state.patternAnalysis.patternHistory as any);
+            } else {
+              state.patternAnalysis.patternHistory = new Map();
+            }
+            
+            if (Array.isArray(state.patternAnalysis.neuralPatterns)) {
+              state.patternAnalysis.neuralPatterns = new Map(state.patternAnalysis.neuralPatterns as any);
+            } else {
+              state.patternAnalysis.neuralPatterns = new Map();
+            }
           } else {
-            state.patternAnalysis = state.patternAnalysis || {
+            state.patternAnalysis = {
               activePatterns: [],
               resonanceThreshold: 0.7,
               patternHistory: new Map(),
               neuralPatterns: new Map()
             };
-            state.patternAnalysis.patternHistory = new Map();
           }
-          if (state.patternAnalysis?.neuralPatterns) {
-            state.patternAnalysis.neuralPatterns = new Map(state.patternAnalysis.neuralPatterns as any);
-          } else {
-            if (!state.patternAnalysis) {
-              state.patternAnalysis = {
-                activePatterns: [],
-                resonanceThreshold: 0.7,
-                patternHistory: new Map(),
-                neuralPatterns: new Map()
-              };
-            }
-            state.patternAnalysis.neuralPatterns = new Map();
-          }
-          if (state.blockchainState?.resonanceMap) {
-            state.blockchainState.resonanceMap = new Map(state.blockchainState.resonanceMap as any);
-          } else {
-            if (state.blockchainState) {
+          
+          if (state.blockchainState) {
+            if (Array.isArray(state.blockchainState.resonanceMap)) {
+              state.blockchainState.resonanceMap = new Map(state.blockchainState.resonanceMap as any);
+            } else {
               state.blockchainState.resonanceMap = new Map();
             }
           }
+          
           // Restore neural sigil maps
-          if (state.neuralSigils) {
+          if (Array.isArray(state.neuralSigils)) {
             state.neuralSigils = new Map(state.neuralSigils as any);
           } else {
             state.neuralSigils = new Map();
           }
-          if (state.patternLibrary) {
+          
+          if (Array.isArray(state.patternLibrary)) {
             state.patternLibrary = new Map(state.patternLibrary as any);
           } else {
             state.patternLibrary = new Map();
           }
+          
           // Recreate blockIndex from blocks
           if (state.blockchainState) {
             state.blockchainState.blockIndex = new Map();

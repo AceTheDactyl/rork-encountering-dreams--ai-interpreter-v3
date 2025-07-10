@@ -75,6 +75,41 @@ export class SigilGenerator {
     return mapping[category] || 'Cortical';
   }
 
+  private validatePattern(pattern: any): Float32Array {
+    // Ensure we have a valid pattern array
+    if (!pattern) {
+      console.warn('SigilGenerator: Pattern is null/undefined, creating default pattern');
+      return new Float32Array(64).fill(0.5);
+    }
+
+    // If it's already a Float32Array, validate its length
+    if (pattern instanceof Float32Array) {
+      if (pattern.length === 64) {
+        return pattern;
+      } else {
+        console.warn('SigilGenerator: Pattern length mismatch, creating new pattern');
+        const newPattern = new Float32Array(64);
+        for (let i = 0; i < Math.min(64, pattern.length); i++) {
+          newPattern[i] = pattern[i] || 0.5;
+        }
+        return newPattern;
+      }
+    }
+
+    // Try to convert to Float32Array
+    try {
+      const arrayPattern = Array.isArray(pattern) ? pattern : Array.from(pattern || []);
+      const float32Pattern = new Float32Array(64);
+      for (let i = 0; i < 64; i++) {
+        float32Pattern[i] = arrayPattern[i] || 0.5;
+      }
+      return float32Pattern;
+    } catch (error) {
+      console.warn('SigilGenerator: Failed to convert pattern, using default:', error);
+      return new Float32Array(64).fill(0.5);
+    }
+  }
+
   public generateFromText(text: string, sourceType: NeuralSigil['sourceType']): NeuralSigil {
     const hash = this.simpleHash(text);
     const rand = this.seededRandom(hash);
@@ -154,7 +189,7 @@ export class SigilGenerator {
 
     return {
       id: `sigil_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-      pattern,
+      pattern: this.validatePattern(pattern),
       brainRegion,
       timestamp: Date.now(),
       sourceType,
@@ -228,7 +263,7 @@ export class SigilGenerator {
 
     return {
       id: `neural_sigil_${neuralSigilData.id}_${Date.now()}`,
-      pattern,
+      pattern: this.validatePattern(pattern),
       brainRegion: this.mapCategoryToBrainRegion(neuralSigilData.category),
       timestamp: Date.now(),
       sourceType,
@@ -248,47 +283,63 @@ export class SigilGenerator {
   }
 
   public calculateSimilarity(a: NeuralSigil, b: NeuralSigil): number {
-    // Ensure both patterns are properly converted to arrays
-    const pA = Array.from(a.pattern);
-    const pB = Array.from(b.pattern);
-    
-    // Validate that we have arrays with the same length
-    if (!Array.isArray(pA) || !Array.isArray(pB) || pA.length !== pB.length) {
-      console.warn('Invalid pattern arrays for similarity calculation');
+    try {
+      // Validate and ensure both patterns are proper arrays
+      const patternA = this.validatePattern(a.pattern);
+      const patternB = this.validatePattern(b.pattern);
+      
+      // Convert to regular arrays for processing
+      const pA = Array.from(patternA);
+      const pB = Array.from(patternB);
+      
+      // Validate that we have arrays with the same length
+      if (!Array.isArray(pA) || !Array.isArray(pB) || pA.length !== pB.length) {
+        console.warn('SigilGenerator: Invalid pattern arrays for similarity calculation');
+        return 0;
+      }
+      
+      // Validate array contents
+      if (pA.some(x => typeof x !== 'number' || isNaN(x)) || 
+          pB.some(x => typeof x !== 'number' || isNaN(x))) {
+        console.warn('SigilGenerator: Pattern arrays contain invalid values');
+        return 0;
+      }
+      
+      // Calculate cosine similarity
+      const dot = pA.reduce((sum, x, i) => sum + x * pB[i], 0);
+      const magA = Math.sqrt(pA.reduce((sum, x) => sum + x * x, 0));
+      const magB = Math.sqrt(pB.reduce((sum, x) => sum + x * x, 0));
+      
+      if (magA === 0 || magB === 0) return 0;
+      
+      let similarity = dot / (magA * magB);
+      
+      // Boost similarity if they share neural sigil data
+      if (a.metadata?.neuralSigilData && b.metadata?.neuralSigilData) {
+        const aData = a.metadata.neuralSigilData;
+        const bData = b.metadata.neuralSigilData;
+        
+        // Same category bonus
+        if (aData.category === bData.category) {
+          similarity += 0.1;
+        }
+        
+        // Same breath phase bonus
+        if (aData.breathPhase === bData.breathPhase) {
+          similarity += 0.05;
+        }
+        
+        // Similar function bonus
+        if (aData.function.includes(bData.function) || bData.function.includes(aData.function)) {
+          similarity += 0.05;
+        }
+      }
+      
+      return Math.max(0, Math.min(1, similarity));
+    } catch (error) {
+      console.error('SigilGenerator: Error calculating similarity:', error);
       return 0;
     }
-    
-    // Calculate cosine similarity
-    const dot = pA.reduce((sum, x, i) => sum + x * pB[i], 0);
-    const magA = Math.sqrt(pA.reduce((sum, x) => sum + x * x, 0));
-    const magB = Math.sqrt(pB.reduce((sum, x) => sum + x * x, 0));
-    
-    if (magA === 0 || magB === 0) return 0;
-    
-    let similarity = dot / (magA * magB);
-    
-    // Boost similarity if they share neural sigil data
-    if (a.metadata?.neuralSigilData && b.metadata?.neuralSigilData) {
-      const aData = a.metadata.neuralSigilData;
-      const bData = b.metadata.neuralSigilData;
-      
-      // Same category bonus
-      if (aData.category === bData.category) {
-        similarity += 0.1;
-      }
-      
-      // Same breath phase bonus
-      if (aData.breathPhase === bData.breathPhase) {
-        similarity += 0.05;
-      }
-      
-      // Similar function bonus
-      if (aData.function.includes(bData.function) || bData.function.includes(aData.function)) {
-        similarity += 0.05;
-      }
-    }
-    
-    return Math.max(0, Math.min(1, similarity));
   }
 
   public findSigilByTernary(ternaryCode: string): NeuralSigilData | undefined {
@@ -371,21 +422,37 @@ export class NeuralSigilGenerator {
   }
 
   async compareSigils(patternA: Float32Array, patternB: Float32Array): Promise<number> {
-    // Ensure both patterns are properly converted to arrays
-    const pA = Array.from(patternA);
-    const pB = Array.from(patternB);
-    
-    // Validate that we have arrays with the same length
-    if (!Array.isArray(pA) || !Array.isArray(pB) || pA.length !== pB.length) {
-      console.warn('Invalid pattern arrays for similarity calculation');
+    try {
+      // Validate patterns first
+      const validPatternA = this.sigilGenerator['validatePattern'](patternA);
+      const validPatternB = this.sigilGenerator['validatePattern'](patternB);
+      
+      // Convert to regular arrays for processing
+      const pA = Array.from(validPatternA);
+      const pB = Array.from(validPatternB);
+      
+      // Validate that we have arrays with the same length
+      if (!Array.isArray(pA) || !Array.isArray(pB) || pA.length !== pB.length) {
+        console.warn('NeuralSigilGenerator: Invalid pattern arrays for similarity calculation');
+        return 0;
+      }
+      
+      // Validate array contents
+      if (pA.some(x => typeof x !== 'number' || isNaN(x)) || 
+          pB.some(x => typeof x !== 'number' || isNaN(x))) {
+        console.warn('NeuralSigilGenerator: Pattern arrays contain invalid values');
+        return 0;
+      }
+      
+      const dot = pA.reduce((sum, x, i) => sum + x * pB[i], 0);
+      const magA = Math.sqrt(pA.reduce((sum, x) => sum + x * x, 0));
+      const magB = Math.sqrt(pB.reduce((sum, x) => sum + x * x, 0));
+      if (magA === 0 || magB === 0) return 0;
+      return dot / (magA * magB);
+    } catch (error) {
+      console.error('NeuralSigilGenerator: Error comparing sigils:', error);
       return 0;
     }
-    
-    const dot = pA.reduce((sum, x, i) => sum + x * pB[i], 0);
-    const magA = Math.sqrt(pA.reduce((sum, x) => sum + x * x, 0));
-    const magB = Math.sqrt(pB.reduce((sum, x) => sum + x * x, 0));
-    if (magA === 0 || magB === 0) return 0;
-    return dot / (magA * magB);
   }
 
   // New methods for neural sigil integration
