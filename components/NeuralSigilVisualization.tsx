@@ -53,7 +53,7 @@ export const NeuralSigilVisualization: React.FC<Props> = ({
   const categoryIcon = useMemo(() => {
     if (!sigil.metadata?.neuralSigilData) return null;
     
-    const icons: Record<string, any> = {
+    const icons: Record<string, React.ComponentType<any>> = {
       brainstem: Heart,
       thalamic: Eye,
       'basal-ganglia': Zap,
