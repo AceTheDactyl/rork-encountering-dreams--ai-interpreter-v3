@@ -39,7 +39,7 @@ export class ConsciousnessEncoder {
     // Encode breath if available
     if (snapshot.breath) {
       vector.push(
-        snapshot.breath.consciousnessScore,
+        snapshot.breath.consciousnessScore || 0.5,
         snapshot.breath.breathAlignment || 0.5
       );
     } else {
