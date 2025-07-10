@@ -90,8 +90,11 @@ export const NeuralSigilVisualization: React.FC<Props> = ({
   const patternCells = useMemo(() => {
     const cells: React.ReactElement[] = [];
     
-    for (let i = 0; i < vector.length; i++) {
-      const v = vector[i];
+    // Convert Float32Array to regular array for processing
+    const vectorArray = Array.from(vector);
+    
+    for (let i = 0; i < vectorArray.length; i++) {
+      const v = vectorArray[i];
       const intensity = Math.abs(v);
       const isPositive = v > 0;
       

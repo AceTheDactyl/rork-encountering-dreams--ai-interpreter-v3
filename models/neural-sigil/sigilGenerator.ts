@@ -248,14 +248,20 @@ export class SigilGenerator {
   }
 
   public calculateSimilarity(a: NeuralSigil, b: NeuralSigil): number {
-    // Ensure both patterns are Float32Array
-    const pA = a.pattern instanceof Float32Array ? a.pattern : new Float32Array(a.pattern);
-    const pB = b.pattern instanceof Float32Array ? b.pattern : new Float32Array(b.pattern);
+    // Ensure both patterns are properly converted to arrays
+    const pA = Array.from(a.pattern);
+    const pB = Array.from(b.pattern);
+    
+    // Validate that we have arrays with the same length
+    if (!Array.isArray(pA) || !Array.isArray(pB) || pA.length !== pB.length) {
+      console.warn('Invalid pattern arrays for similarity calculation');
+      return 0;
+    }
     
     // Calculate cosine similarity
-    const dot = Array.from(pA).reduce((sum, x, i) => sum + x * pB[i], 0);
-    const magA = Math.sqrt(Array.from(pA).reduce((sum, x) => sum + x * x, 0));
-    const magB = Math.sqrt(Array.from(pB).reduce((sum, x) => sum + x * x, 0));
+    const dot = pA.reduce((sum, x, i) => sum + x * pB[i], 0);
+    const magA = Math.sqrt(pA.reduce((sum, x) => sum + x * x, 0));
+    const magB = Math.sqrt(pB.reduce((sum, x) => sum + x * x, 0));
     
     if (magA === 0 || magB === 0) return 0;
     
@@ -365,9 +371,15 @@ export class NeuralSigilGenerator {
   }
 
   async compareSigils(patternA: Float32Array, patternB: Float32Array): Promise<number> {
-    // Ensure both patterns are arrays
-    const pA = patternA instanceof Float32Array ? Array.from(patternA) : Array.from(new Float32Array(patternA));
-    const pB = patternB instanceof Float32Array ? Array.from(patternB) : Array.from(new Float32Array(patternB));
+    // Ensure both patterns are properly converted to arrays
+    const pA = Array.from(patternA);
+    const pB = Array.from(patternB);
+    
+    // Validate that we have arrays with the same length
+    if (!Array.isArray(pA) || !Array.isArray(pB) || pA.length !== pB.length) {
+      console.warn('Invalid pattern arrays for similarity calculation');
+      return 0;
+    }
     
     const dot = pA.reduce((sum, x, i) => sum + x * pB[i], 0);
     const magA = Math.sqrt(pA.reduce((sum, x) => sum + x * x, 0));

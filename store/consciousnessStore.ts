@@ -501,7 +501,6 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
           type,
           pattern: Array.from(sigil.pattern),
           metadata: sigil.metadata || {},
-          neuralSigilData,
           timestamp: Date.now()
         });
         
@@ -545,7 +544,6 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
           type,
           pattern: Array.from(sigil.pattern),
           metadata: sigil.metadata || {},
-          neuralSigilData: sigil.metadata?.neuralSigilData,
           timestamp: Date.now(),
           ...(type === 'dream' && {
             dreamData: {
@@ -1012,20 +1010,36 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
       onRehydrateStorage: () => (state) => {
         if (state) {
           // Restore Map objects from arrays
-          if (state.patternAnalysis.patternHistory) {
+          if (state.patternAnalysis?.patternHistory) {
             state.patternAnalysis.patternHistory = new Map(state.patternAnalysis.patternHistory as any);
           } else {
+            state.patternAnalysis = state.patternAnalysis || {
+              activePatterns: [],
+              resonanceThreshold: 0.7,
+              patternHistory: new Map(),
+              neuralPatterns: new Map()
+            };
             state.patternAnalysis.patternHistory = new Map();
           }
-          if (state.patternAnalysis.neuralPatterns) {
+          if (state.patternAnalysis?.neuralPatterns) {
             state.patternAnalysis.neuralPatterns = new Map(state.patternAnalysis.neuralPatterns as any);
           } else {
+            if (!state.patternAnalysis) {
+              state.patternAnalysis = {
+                activePatterns: [],
+                resonanceThreshold: 0.7,
+                patternHistory: new Map(),
+                neuralPatterns: new Map()
+              };
+            }
             state.patternAnalysis.neuralPatterns = new Map();
           }
-          if (state.blockchainState.resonanceMap) {
+          if (state.blockchainState?.resonanceMap) {
             state.blockchainState.resonanceMap = new Map(state.blockchainState.resonanceMap as any);
           } else {
-            state.blockchainState.resonanceMap = new Map();
+            if (state.blockchainState) {
+              state.blockchainState.resonanceMap = new Map();
+            }
           }
           // Restore neural sigil maps
           if (state.neuralSigils) {
@@ -1039,20 +1053,22 @@ export const useConsciousnessStore = create<ConsciousnessStore>()(
             state.patternLibrary = new Map();
           }
           // Recreate blockIndex from blocks
-          state.blockchainState.blockIndex = new Map();
-          state.blockchainState.blocks.forEach(block => {
-            state.blockchainState.blockIndex.set(block.id, block);
-          });
-          
-          // Sync chainState with blockchainState for compatibility
-          state.chainState = {
-            latestBlock: state.blockchainState.latestBlock,
-            blockCount: state.blockchainState.blockCount,
-            blocks: state.blockchainState.blocks
-          };
-          
-          // Sync ipfsStatus for compatibility
-          state.ipfsStatus = state.blockchainState.ipfsStatus;
+          if (state.blockchainState) {
+            state.blockchainState.blockIndex = new Map();
+            state.blockchainState.blocks.forEach(block => {
+              state.blockchainState.blockIndex.set(block.id, block);
+            });
+            
+            // Sync chainState with blockchainState for compatibility
+            state.chainState = {
+              latestBlock: state.blockchainState.latestBlock,
+              blockCount: state.blockchainState.blockCount,
+              blocks: state.blockchainState.blocks
+            };
+            
+            // Sync ipfsStatus for compatibility
+            state.ipfsStatus = state.blockchainState.ipfsStatus;
+          }
 
           // Ensure biometric data is available
           if (!state.biometrics) {
