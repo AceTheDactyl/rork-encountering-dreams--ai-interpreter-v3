@@ -1,20 +1,11 @@
-import { NeuralSigil } from '@/models/neural-sigil/sigilGenerator';
+import { NeuralSigil, SigilGenerator } from '@/models/neural-sigil/sigilGenerator';
 
 export interface BraidPattern {
   id: string;
   type: 'temporal' | 'causal' | 'resonant' | 'symbolic';
   strength: number;
   participants: string[];
-  emergentProperties: Record<string, any>;
-}
-
-export interface BraidResult {
-  id: string;
-  combinedPattern: Float32Array;
-  participantSigils: string[];
-  braidStrength: number;
-  emergentProperties: Record<string, any>;
-  timestamp: number;
+  emergentProperties: Map<string, any>;
 }
 
 export class SigilBraider {
@@ -39,45 +30,6 @@ export class SigilBraider {
     
     return patterns;
   }
-
-  async braid(sigils: NeuralSigil[]): Promise<BraidResult> {
-    if (sigils.length < 2) {
-      throw new Error('Need at least 2 sigils to braid');
-    }
-
-    // Combine patterns using weighted average
-    const combinedPattern = new Float32Array(64);
-    const totalWeight = sigils.reduce((sum, sigil) => sum + sigil.strength, 0);
-
-    for (let i = 0; i < 64; i++) {
-      let weightedSum = 0;
-      for (const sigil of sigils) {
-        weightedSum += sigil.pattern[i] * (sigil.strength / totalWeight);
-      }
-      combinedPattern[i] = weightedSum;
-    }
-
-    // Calculate braid strength
-    const braidStrength = sigils.reduce((sum, sigil) => sum + sigil.strength, 0) / sigils.length;
-
-    // Extract emergent properties
-    const emergentProperties: Record<string, any> = {
-      brainRegions: [...new Set(sigils.map(s => s.brainRegion))],
-      sourceTypes: [...new Set(sigils.map(s => s.sourceType))],
-      averageStrength: braidStrength,
-      participantCount: sigils.length,
-      temporalSpan: Math.max(...sigils.map(s => s.timestamp)) - Math.min(...sigils.map(s => s.timestamp))
-    };
-
-    return {
-      id: `braid_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      combinedPattern,
-      participantSigils: sigils.map(s => s.id),
-      braidStrength,
-      emergentProperties,
-      timestamp: Date.now()
-    };
-  }
   
   private findTemporalPatterns(sigils: NeuralSigil[]): BraidPattern[] {
     const patterns: BraidPattern[] = [];
@@ -88,10 +40,9 @@ export class SigilBraider {
       
       // If sigils occur within 5 minutes, consider them temporally linked
       if (timeDiff < 5 * 60 * 1000) {
-        const emergentProperties: Record<string, any> = {
-          timeDiff: timeDiff,
-          sequenceIds: [sorted[i].id, sorted[i + 1].id]
-        };
+        const emergentProperties = new Map<string, any>();
+        emergentProperties.set('timeDiff', timeDiff);
+        emergentProperties.set('sequence', [sorted[i].id, sorted[i + 1].id]);
         
         patterns.push({
           id: `temporal_${sorted[i].id}_${sorted[i + 1].id}`,
@@ -112,12 +63,11 @@ export class SigilBraider {
     
     for (const sigil of sigils) {
       if (sigil.metadata?.triggeredBy) {
-        const trigger = sigils.find(s => s.id === sigil.metadata!.triggeredBy);
+        const trigger = sigils.find(s => s.id === sigil.metadata?.triggeredBy);
         if (trigger) {
-          const emergentProperties: Record<string, any> = {
-            causeId: trigger.id,
-            effectId: sigil.id
-          };
+          const emergentProperties = new Map<string, any>();
+          emergentProperties.set('cause', trigger.id);
+          emergentProperties.set('effect', sigil.id);
           
           patterns.push({
             id: `causal_${trigger.id}_${sigil.id}`,
@@ -135,16 +85,16 @@ export class SigilBraider {
   
   private findResonantPatterns(sigils: NeuralSigil[]): BraidPattern[] {
     const patterns: BraidPattern[] = [];
+    const generator = SigilGenerator.getInstance();
     
     for (let i = 0; i < sigils.length - 1; i++) {
       for (let j = i + 1; j < sigils.length; j++) {
-        const similarity = this.calculateSimilarity(sigils[i], sigils[j]);
+        const similarity = generator.calculateSimilarity(sigils[i], sigils[j]);
         
         if (similarity > 0.8) {
-          const emergentProperties: Record<string, any> = {
-            similarity: similarity,
-            resonanceType: 'high'
-          };
+          const emergentProperties = new Map<string, any>();
+          emergentProperties.set('similarity', similarity);
+          emergentProperties.set('resonance', 'high');
           
           patterns.push({
             id: `resonant_${sigils[i].id}_${sigils[j].id}`,
@@ -174,10 +124,9 @@ export class SigilBraider {
     // Create patterns for groups with multiple sigils
     for (const [region, group] of regionGroups) {
       if (group.length > 2) {
-        const emergentProperties: Record<string, any> = {
-          brainRegion: region,
-          participantCount: group.length
-        };
+        const emergentProperties = new Map<string, any>();
+        emergentProperties.set('region', region);
+        emergentProperties.set('count', group.length);
         
         patterns.push({
           id: `symbolic_${region}_${Date.now()}`,
@@ -190,15 +139,5 @@ export class SigilBraider {
     }
     
     return patterns;
-  }
-
-  private calculateSimilarity(a: NeuralSigil, b: NeuralSigil): number {
-    const pA = a.pattern;
-    const pB = b.pattern;
-    const dot = pA.reduce((sum, x, i) => sum + x * pB[i], 0);
-    const magA = Math.sqrt(pA.reduce((sum, x) => sum + x * x, 0));
-    const magB = Math.sqrt(pB.reduce((sum, x) => sum + x * x, 0));
-    if (magA === 0 || magB === 0) return 0;
-    return dot / (magA * magB);
   }
 }
