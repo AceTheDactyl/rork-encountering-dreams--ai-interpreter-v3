@@ -20,9 +20,17 @@ export interface Dream {
   persona?: string;
 }
 
+export interface DreamGroup {
+  groupTitle: string;
+  dreams: Dream[];
+}
+
+export type SortBy = 'date' | 'lucidity' | 'type' | 'persona' | 'mnemonic' | 'psychic' | 'pre-echo' | 'lucid' | 'meta-lucid';
+
 interface DreamStore {
   dreams: Dream[];
   currentDream: Dream | null;
+  sortBy: SortBy;
   
   // Existing methods
   addDream: (dream: Omit<Dream, 'id' | 'timestamp'>) => Promise<Dream>;
@@ -30,8 +38,13 @@ interface DreamStore {
   deleteDream: (id: string) => Promise<void>;
   loadDreams: () => Promise<void>;
   
+  // Grouping and sorting methods
+  getGroupedDreams: () => DreamGroup[];
+  setSortBy: (sortBy: SortBy) => void;
+  getDreamSigil: (dreamId: string) => NeuralSigil | undefined;
+  
   // Neural sigil methods
-  generateDreamSigil: (dream: Dream) => Promise<NeuralSigil>;
+  generateDreamSigil: (dreamId: string) => Promise<NeuralSigil>;
   findSimilarDreams: (dreamId: string, threshold?: number) => Promise<Dream[]>;
   braidDreams: (dreamIds: string[]) => Promise<void>;
   analyzeDreamPatterns: (dreamId: string) => Promise<any>;
@@ -42,6 +55,85 @@ export const useDreamStore = create<DreamStore>()(
     (set, get) => ({
       dreams: [],
       currentDream: null,
+      sortBy: 'date',
+      
+      // Set sort by method
+      setSortBy: (sortBy: SortBy) => {
+        set({ sortBy });
+      },
+      
+      // Get dream sigil by dream ID
+      getDreamSigil: (dreamId: string) => {
+        const { dreams } = get();
+        const dream = dreams.find(d => d.id === dreamId);
+        return dream?.neuralSigil;
+      },
+      
+      // Get grouped dreams based on current sort option
+      getGroupedDreams: () => {
+        const { dreams, sortBy } = get();
+        
+        // Filter dreams based on sort type
+        let filteredDreams = [...dreams];
+        
+        if (['mnemonic', 'psychic', 'pre-echo', 'lucid', 'meta-lucid'].includes(sortBy)) {
+          filteredDreams = dreams.filter(dream => dream.dreamType === sortBy);
+        }
+        
+        // Sort dreams
+        switch (sortBy) {
+          case 'date':
+            filteredDreams.sort((a, b) => b.timestamp - a.timestamp);
+            return [{ groupTitle: 'All Dreams', dreams: filteredDreams }];
+            
+          case 'lucidity':
+            filteredDreams.sort((a, b) => b.lucidity - a.lucidity);
+            return [{ groupTitle: 'By Lucidity', dreams: filteredDreams }];
+            
+          case 'type':
+            const typeGroups = new Map<string, Dream[]>();
+            filteredDreams.forEach(dream => {
+              const type = dream.dreamType || 'Unknown';
+              if (!typeGroups.has(type)) {
+                typeGroups.set(type, []);
+              }
+              typeGroups.get(type)!.push(dream);
+            });
+            
+            return Array.from(typeGroups.entries()).map(([type, dreams]) => ({
+              groupTitle: type,
+              dreams: dreams.sort((a, b) => b.timestamp - a.timestamp)
+            }));
+            
+          case 'persona':
+            const personaGroups = new Map<string, Dream[]>();
+            filteredDreams.forEach(dream => {
+              const persona = dream.persona || 'Unknown';
+              if (!personaGroups.has(persona)) {
+                personaGroups.set(persona, []);
+              }
+              personaGroups.get(persona)!.push(dream);
+            });
+            
+            return Array.from(personaGroups.entries()).map(([persona, dreams]) => ({
+              groupTitle: persona,
+              dreams: dreams.sort((a, b) => b.timestamp - a.timestamp)
+            }));
+            
+          case 'mnemonic':
+          case 'psychic':
+          case 'pre-echo':
+          case 'lucid':
+          case 'meta-lucid':
+            return [{ 
+              groupTitle: `${sortBy.charAt(0).toUpperCase() + sortBy.slice(1)} Dreams`, 
+              dreams: filteredDreams.sort((a, b) => b.timestamp - a.timestamp)
+            }];
+            
+          default:
+            return [{ groupTitle: 'All Dreams', dreams: filteredDreams }];
+        }
+      },
       
       // Enhanced addDream with neural sigil generation
       addDream: async (dreamData) => {
@@ -57,7 +149,7 @@ export const useDreamStore = create<DreamStore>()(
         
         // Generate neural sigil for dream
         try {
-          const sigil = await get().generateDreamSigil(dream);
+          const sigil = await get().generateDreamSigil(dream.id);
           dream.neuralSigil = sigil;
           dream.sigilId = sigil.id;
           
@@ -80,7 +172,14 @@ export const useDreamStore = create<DreamStore>()(
       },
       
       // Generate neural sigil for dream
-      generateDreamSigil: async (dream: Dream) => {
+      generateDreamSigil: async (dreamId: string) => {
+        const { dreams } = get();
+        const dream = dreams.find(d => d.id === dreamId);
+        
+        if (!dream) {
+          throw new Error(`Dream with id ${dreamId} not found`);
+        }
+        
         const consciousnessStore = useConsciousnessStore.getState();
         
         // Extract dream features for sigil generation
@@ -205,7 +304,7 @@ export const useDreamStore = create<DreamStore>()(
         // Regenerate sigil if content changed significantly
         if (updates.content || updates.symbols || updates.emotionalIntensity) {
           try {
-            const newSigil = await get().generateDreamSigil(updatedDream);
+            const newSigil = await get().generateDreamSigil(updatedDream.id);
             updatedDream.neuralSigil = newSigil;
             updatedDream.sigilId = newSigil.id;
           } catch (error) {
@@ -236,7 +335,8 @@ export const useDreamStore = create<DreamStore>()(
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         dreams: state.dreams.slice(0, 100), // Limit stored dreams
-        currentDream: state.currentDream
+        currentDream: state.currentDream,
+        sortBy: state.sortBy
       })
     }
   )
