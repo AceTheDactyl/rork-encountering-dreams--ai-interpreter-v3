@@ -24,7 +24,34 @@ export const NeuralSigilVisualization: React.FC<Props> = ({
   const [expanded, setExpanded] = useState(false);
   const [showNeuralData, setShowNeuralData] = useState(false);
   const [pulseAnimation] = useState(new Animated.Value(0));
-  const vector = expanded ? sigil.pattern : sigil.pattern.subarray(0, 12);
+  const vector = useMemo(() => {
+    try {
+      // Ensure we have a valid pattern array
+      if (!sigil.pattern) {
+        return new Float32Array(12).fill(0.5);
+      }
+      
+      // Convert to Float32Array if it's not already
+      const pattern = sigil.pattern instanceof Float32Array 
+        ? sigil.pattern 
+        : new Float32Array(Array.from(sigil.pattern || []));
+      
+      // Return full pattern if expanded, otherwise slice first 12 elements
+      if (expanded) {
+        return pattern;
+      } else {
+        // Use slice instead of subarray for better compatibility
+        const sliced = new Float32Array(Math.min(12, pattern.length));
+        for (let i = 0; i < sliced.length; i++) {
+          sliced[i] = pattern[i] || 0.5;
+        }
+        return sliced;
+      }
+    } catch (error) {
+      console.warn('Error processing sigil pattern:', error);
+      return new Float32Array(12).fill(0.5);
+    }
+  }, [sigil.pattern, expanded]);
 
   const brainRegionColor = useMemo(() => {
     const colors: Record<NeuralSigil['brainRegion'], string> = {
@@ -90,34 +117,54 @@ export const NeuralSigilVisualization: React.FC<Props> = ({
   const patternCells = useMemo(() => {
     const cells: React.ReactElement[] = [];
     
-    // Convert Float32Array to regular array for processing
-    const vectorArray = Array.from(vector);
-    
-    vectorArray.forEach((v, i) => {
-      const intensity = Math.abs(v);
-      const isPositive = v > 0;
+    try {
+      // Convert Float32Array to regular array for processing
+      const vectorArray = Array.from(vector || []);
       
-      cells.push(
-        <View 
-          key={i} 
-          style={[
-            styles.cell,
-            {
-              backgroundColor: isPositive 
-                ? brainRegionColor + Math.floor(intensity * 255).toString(16).padStart(2, '0')
-                : Colors.dark.border + Math.floor(intensity * 128).toString(16).padStart(2, '0')
-            }
-          ]}
-        >
-          <Text style={[
-            styles.cellText,
-            { color: intensity > 0.5 ? Colors.dark.background : Colors.dark.text }
-          ]}>
-            {v.toFixed(2)}
-          </Text>
-        </View>
-      );
-    });
+      vectorArray.forEach((v, i) => {
+        // Ensure v is a valid number
+        const value = typeof v === 'number' && !isNaN(v) ? v : 0.5;
+        const intensity = Math.abs(value);
+        const isPositive = value > 0;
+        
+        cells.push(
+          <View 
+            key={i} 
+            style={[
+              styles.cell,
+              {
+                backgroundColor: isPositive 
+                  ? brainRegionColor + Math.floor(intensity * 255).toString(16).padStart(2, '0')
+                  : Colors.dark.border + Math.floor(intensity * 128).toString(16).padStart(2, '0')
+              }
+            ]}
+          >
+            <Text style={[
+              styles.cellText,
+              { color: intensity > 0.5 ? Colors.dark.background : Colors.dark.text }
+            ]}>
+              {value.toFixed(2)}
+            </Text>
+          </View>
+        );
+      });
+    } catch (error) {
+      console.warn('Error generating pattern cells:', error);
+      // Fallback: create a few default cells
+      for (let i = 0; i < 12; i++) {
+        cells.push(
+          <View 
+            key={i} 
+            style={[
+              styles.cell,
+              { backgroundColor: Colors.dark.border + '40' }
+            ]}
+          >
+            <Text style={styles.cellText}>0.50</Text>
+          </View>
+        );
+      }
+    }
     
     return cells;
   }, [vector, brainRegionColor]);
@@ -190,7 +237,7 @@ export const NeuralSigilVisualization: React.FC<Props> = ({
               style={[styles.cell, styles.expandCell]} 
               onPress={() => setExpanded(true)}
             >
-              <Text style={styles.cellText}>+{sigil.pattern.length - vector.length}</Text>
+              <Text style={styles.cellText}>+{(sigil.pattern?.length || 64) - vector.length}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -200,7 +247,7 @@ export const NeuralSigilVisualization: React.FC<Props> = ({
           onPress={() => setExpanded(!expanded)}
         >
           <Text style={styles.expandText}>
-            {expanded ? 'Show Less' : `Show All ${sigil.pattern.length} Dimensions`}
+            {expanded ? 'Show Less' : `Show All ${sigil.pattern?.length || 64} Dimensions`}
           </Text>
           {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </TouchableOpacity>
