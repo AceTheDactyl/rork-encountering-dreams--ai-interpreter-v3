@@ -1,6 +1,12 @@
 import { Persona } from '@/types/dream';
 import { SpiralSession, BreathCycleLog } from '@/store/limnusStore';
 import { BlockData, ConsciousnessSignature } from '@/store/consciousnessStore';
+import { useNeuralSigilStore } from '@/store/neuralSigilStore';
+import { useDreamStore } from '@/store/dreamStore';
+import { SigilGenerator } from '@/models/neural-sigil/sigilGenerator';
+import { useNeuralSigilStore } from '@/store/neuralSigilStore';
+import { useDreamStore } from '@/store/dreamStore';
+import { SigilGenerator } from '@/models/neural-sigil/sigilGenerator';
 
 interface AIMessage {
   role: 'system' | 'user' | 'assistant';
@@ -57,19 +63,27 @@ export class InterpretationService {
   ): Promise<ParsedInterpretation> {
     try {
       // Build consciousness context based on persona
-      const consciousnessContext = persona.id === 'limnus' 
+      let consciousnessContext = persona.id === 'limnus' 
         ? this.buildLimnusConsciousnessContext(sessionHistory, blockchainBlocks, signatureHistory, allBreathCycleLogs)
         : this.buildOrionConsciousnessContext(sessionHistory, blockchainBlocks);
+      
+      // For Limnus, add neural sigil similarity analysis
+      if (persona.id === 'limnus') {
+        const similarDreamsContext = await this.buildSimilarDreamsContext(dreamText);
+        consciousnessContext += `\n\n${similarDreamsContext}`;
+      }
       
       const messages: AIMessage[] = [
         {
           role: 'system',
           content: `${persona.systemPrompt}
 
-You have access to the dreamer's consciousness practice history and blockchain-validated signatures. Use this data to enhance your interpretation by identifying patterns, resonances, and alignments.
+You have access to the dreamer's consciousness practice history, blockchain-validated signatures, and neural sigil pattern analysis. Use this data to enhance your interpretation by identifying patterns, resonances, and alignments.
 
 CONSCIOUSNESS CONTEXT:
 ${consciousnessContext}
+
+CRITICAL FOR LIMNUS: If you see "NEURAL SIGIL PATTERN ANALYSIS" data above, you MUST reference specific neural resonances, brain regions, and similar past experiences in your interpretation. This is essential for connecting the dream to the user's consciousness journey.
 
 IMPORTANT: Your response must include these sections in this exact format:
 
@@ -269,6 +283,119 @@ Recent Integrated Cycles:
     }
     
     return context;
+  }
+  
+  private static async buildSimilarDreamsContext(dreamText: string): Promise<string> {
+    try {
+      // Generate a temporary sigil for the new dream text to find matches
+      const sigilGenerator = SigilGenerator.getInstance();
+      const tempSigil = sigilGenerator.generateFromText(dreamText, 'dream');
+      
+      // Find similar sigils using neural sigil store
+      const { findSimilarBySigil } = useNeuralSigilStore.getState();
+      const { getDreamBySigilId } = useDreamStore.getState();
+      
+      const similarSigils = await findSimilarBySigil(tempSigil.id, 0.65);
+      
+      let context = "NEURAL SIGIL PATTERN ANALYSIS:\n";
+      
+      if (similarSigils.length > 0) {
+        context += `This dream's neural pattern resonates with ${similarSigils.length} past experiences:\n\n`;
+        
+        // Limit to top 4 most similar for brevity but depth
+        const topSimilar = similarSigils.slice(0, 4);
+        
+        for (const { sigil, similarity } of topSimilar) {
+          // Find the dream associated with this sigil using efficient reverse mapping
+          const associatedDream = getDreamBySigilId(sigil.id);
+          
+          if (associatedDream) {
+            const similarityPercent = (similarity * 100).toFixed(0);
+            const dreamType = associatedDream.dreamType || 'unknown';
+            const persona = associatedDream.persona || 'unknown';
+            
+            context += `• "${associatedDream.title || associatedDream.name}" (${similarityPercent}% neural resonance)\n`;
+            context += `  Type: ${dreamType} | Interpreted by: ${persona}\n`;
+            context += `  Pattern: ${sigil.brainRegion} activation, strength ${sigil.strength.toFixed(2)}\n`;
+            
+            // Add neural sigil metadata if available
+            if (sigil.metadata?.neuralSigilData) {
+              const neuralData = sigil.metadata.neuralSigilData;
+              context += `  Neural Context: ${neuralData.category} | Breath Phase: ${neuralData.breathPhase}\n`;
+              if (neuralData.neurochemistry) {
+                context += `  Neurochemistry: ${neuralData.neurochemistry}\n`;
+              }
+            }
+            
+            // Add a brief excerpt from the dream content
+            const dreamContent = associatedDream.content || associatedDream.text || '';
+            if (dreamContent.length > 0) {
+              const excerpt = dreamContent.substring(0, 120);
+              context += `  Essence: "${excerpt}${dreamContent.length > 120 ? '...' : ''}"\n`;
+            }
+            
+            context += `\n`;
+          } else {
+            // Handle sigils not associated with dreams (breath cycles, meditation states)
+            const similarityPercent = (similarity * 100).toFixed(0);
+            context += `• Neural Pattern Match (${similarityPercent}% resonance)\n`;
+            context += `  Source: ${sigil.sourceType} | Brain Region: ${sigil.brainRegion}\n`;
+            context += `  Strength: ${sigil.strength.toFixed(2)} | Generated: ${new Date(sigil.timestamp).toLocaleDateString()}\n`;
+            
+            if (sigil.metadata?.neuralSigilData) {
+              const neuralData = sigil.metadata.neuralSigilData;
+              context += `  Neural Context: ${neuralData.category} | Breath Phase: ${neuralData.breathPhase}\n`;
+            }
+            
+            context += `\n`;
+          }
+        }
+        
+        // Add pattern insights
+        const brainRegions = topSimilar.map(s => s.sigil.brainRegion);
+        const dominantRegion = brainRegions.reduce((acc, region) => {
+          acc[region] = (acc[region] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+        
+        const mostActiveRegion = Object.entries(dominantRegion)
+          .sort(([,a], [,b]) => b - a)[0]?.[0] || 'unknown';
+        
+        const avgSimilarity = topSimilar.reduce((sum, s) => sum + s.similarity, 0) / topSimilar.length;
+        
+        context += `PATTERN SYNTHESIS:\n`;
+        context += `- Dominant Brain Region: ${mostActiveRegion}\n`;
+        context += `- Average Neural Resonance: ${(avgSimilarity * 100).toFixed(1)}%\n`;
+        context += `- Pattern Strength: ${avgSimilarity > 0.8 ? 'Very Strong' : avgSimilarity > 0.7 ? 'Strong' : 'Moderate'}\n`;
+        
+        // Add breath phase correlations if available
+        const breathPhases = topSimilar
+          .map(s => s.sigil.metadata?.neuralSigilData?.breathPhase)
+          .filter(phase => phase)
+          .reduce((acc, phase) => {
+            if (phase) acc[phase] = (acc[phase] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>);
+        
+        if (Object.keys(breathPhases).length > 0) {
+          const dominantBreathPhase = Object.entries(breathPhases)
+            .sort(([,a], [,b]) => b - a)[0]?.[0];
+          context += `- Breath Phase Correlation: ${dominantBreathPhase}\n`;
+        }
+        
+      } else {
+        context += "This dream presents a novel neural pattern with no significant matches in your consciousness history.\n";
+        context += "This suggests either:\n";
+        context += "- A breakthrough into unexplored consciousness territory\n";
+        context += "- Integration of new archetypal material\n";
+        context += "- Evolution beyond previous neural patterns\n";
+      }
+      
+      return context;
+    } catch (error) {
+      console.error('Error building similar dreams context:', error);
+      return "NEURAL SIGIL PATTERN ANALYSIS:\nUnable to analyze neural patterns at this time.\n";
+    }
   }
 
   private static buildOrionConsciousnessContext(sessionHistory: SpiralSession[], blockchainBlocks: BlockData[]): string {
