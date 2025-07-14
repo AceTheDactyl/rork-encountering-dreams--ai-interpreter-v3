@@ -79,52 +79,80 @@ export const useNeuralSigilStore = create<NeuralSigilState & NeuralSigilActions>
         selectedCategory: null,
 
         initializeNeuralSystem: async () => {
-          let generator = get().sigilGenerator;
-          let neuralGenerator = get().neuralSigilGenerator;
-          
-          if (!generator) {
-            generator = SigilGenerator.getInstance();
-            set({ sigilGenerator: generator });
+          try {
+            let generator = get().sigilGenerator;
+            let neuralGenerator = get().neuralSigilGenerator;
+            let recognizer = get().patternRecognizer;
+            
+            if (!generator) {
+              generator = SigilGenerator.getInstance();
+              set({ sigilGenerator: generator });
+            }
+            
+            if (!neuralGenerator) {
+              neuralGenerator = new NeuralSigilGenerator();
+              await neuralGenerator.initialize();
+              set({ neuralSigilGenerator: neuralGenerator });
+            }
+            
+            if (!recognizer) {
+              recognizer = new PatternRecognizer();
+              set({ patternRecognizer: recognizer });
+            }
+            
+            console.log('Neural Sigil System initialized with', neuralSigils.length, 'neural sigils');
+          } catch (error) {
+            console.error('Failed to initialize neural sigil system:', error);
           }
-          
-          if (!neuralGenerator) {
-            neuralGenerator = new NeuralSigilGenerator();
-            await neuralGenerator.initialize();
-            set({ neuralSigilGenerator: neuralGenerator });
-          }
-          
-          console.log('Neural Sigil System initialized with', neuralSigils.length, 'neural sigils');
         },
 
         generateNeuralSigil: async (text, type) => {
-          let generator = get().sigilGenerator;
-          if (!generator) {
-            generator = SigilGenerator.getInstance();
-            set({ sigilGenerator: generator });
-          }
-
-          const sigil = generator.generateFromText(text, type);
-
-          const matches: PatternMatch[] = [];
-          for (const existing of get().neuralSigils) {
-            const similarity = generator.calculateSimilarity(sigil, existing);
-            if (similarity > 0.7) {
-              matches.push({ 
-                sigilId: sigil.id, 
-                similarity, 
-                matchedWith: existing.id,
-                neuralSigilData: existing.metadata?.neuralSigilData
-              });
+          try {
+            // Ensure system is initialized
+            await get().initializeNeuralSystem();
+            
+            let generator = get().sigilGenerator;
+            if (!generator) {
+              generator = SigilGenerator.getInstance();
+              set({ sigilGenerator: generator });
             }
+
+            const sigil = generator.generateFromText(text, type);
+            
+            // Validate sigil pattern
+            if (!sigil.pattern || sigil.pattern.length === 0) {
+              console.warn('Generated sigil has invalid pattern, creating default');
+              sigil.pattern = new Float32Array(64).fill(0.5);
+            }
+
+            const matches: PatternMatch[] = [];
+            for (const existing of get().neuralSigils) {
+              try {
+                const similarity = generator.calculateSimilarity(sigil, existing);
+                if (similarity > 0.7) {
+                  matches.push({ 
+                    sigilId: sigil.id, 
+                    similarity, 
+                    matchedWith: existing.id,
+                    neuralSigilData: existing.metadata?.neuralSigilData
+                  });
+                }
+              } catch (error) {
+                console.warn('Error calculating similarity for existing sigil:', error);
+              }
+            }
+
+            set(state => {
+              state.neuralSigils.push(sigil);
+              state.currentSigil = sigil;
+              state.patternMatches.push(...matches);
+            });
+
+            return sigil;
+          } catch (error) {
+            console.error('Error generating neural sigil:', error);
+            throw error;
           }
-
-          set(state => {
-            state.neuralSigils.push(sigil);
-            state.currentSigil = sigil;
-            state.patternMatches.push(...matches);
-          });
-
-          return sigil;
         },
 
         generateFromNeuralSigilData: async (neuralSigilData, type) => {
@@ -145,24 +173,41 @@ export const useNeuralSigilStore = create<NeuralSigilState & NeuralSigilActions>
         },
 
         generateFromBreathPhase: async (breathPhase, type = 'breath') => {
-          let neuralGenerator = get().neuralSigilGenerator;
-          if (!neuralGenerator) {
-            neuralGenerator = new NeuralSigilGenerator();
-            await neuralGenerator.initialize();
-            set({ neuralSigilGenerator: neuralGenerator });
+          try {
+            // Ensure system is initialized
+            await get().initializeNeuralSystem();
+            
+            let neuralGenerator = get().neuralSigilGenerator;
+            if (!neuralGenerator) {
+              neuralGenerator = new NeuralSigilGenerator();
+              await neuralGenerator.initialize();
+              set({ neuralSigilGenerator: neuralGenerator });
+            }
+
+            const sigil = await neuralGenerator.generateFromBreathPhase(breathPhase, type);
+            
+            // Validate sigil pattern
+            if (!sigil.pattern || sigil.pattern.length === 0) {
+              console.warn('Generated breath sigil has invalid pattern, creating default');
+              sigil.pattern = new Float32Array(64).fill(0.5);
+            }
+
+            set(state => {
+              state.neuralSigils.push(sigil);
+              state.currentSigil = sigil;
+            });
+
+            return sigil;
+          } catch (error) {
+            console.error('Error generating breath phase sigil:', error);
+            throw error;
           }
-
-          const sigil = await neuralGenerator.generateFromBreathPhase(breathPhase, type);
-
-          set(state => {
-            state.neuralSigils.push(sigil);
-            state.currentSigil = sigil;
-          });
-
-          return sigil;
         },
 
         findSimilarBySigil: async (sigilId, threshold = 0.7) => {
+          // Ensure system is initialized
+          await get().initializeNeuralSystem();
+          
           const { neuralSigils, sigilGenerator } = get();
           const target = neuralSigils.find(s => s.id === sigilId);
           if (!target || !sigilGenerator) return [];
@@ -183,6 +228,9 @@ export const useNeuralSigilStore = create<NeuralSigilState & NeuralSigilActions>
         },
 
         braidConsciousnessStates: async (stateIds) => {
+          // Ensure system is initialized
+          await get().initializeNeuralSystem();
+          
           const { neuralSigils, sigilGenerator } = get();
           const sigils = neuralSigils.filter(s => stateIds.includes(s.id));
           
@@ -265,6 +313,9 @@ export const useNeuralSigilStore = create<NeuralSigilState & NeuralSigilActions>
         },
 
         recognizePattern: async (sigil) => {
+          // Ensure system is initialized
+          await get().initializeNeuralSystem();
+          
           let recognizer = get().patternRecognizer;
           if (!recognizer) {
             recognizer = new PatternRecognizer();

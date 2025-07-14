@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NeuralSigil } from '@/models/neural-sigil/sigilGenerator';
-import { useConsciousnessStore } from './consciousnessStore';
+import { useNeuralSigilStore } from './neuralSigilStore';
 
 export interface Dream {
   id: string;
@@ -147,11 +147,24 @@ export const useDreamStore = create<DreamStore>()(
           timestamp,
         };
         
-        // Generate neural sigil for dream
+        // Store dream first
+        const { dreams } = get();
+        const updatedDreams = [...dreams, dream];
+        set({ dreams: updatedDreams, currentDream: dream });
+        
+        // Generate neural sigil for dream after it's stored
         try {
           const sigil = await get().generateDreamSigil(dream.id);
           dream.neuralSigil = sigil;
           dream.sigilId = sigil.id;
+          
+          // Update the dream with sigil
+          const currentDreams = get().dreams;
+          const dreamIndex = currentDreams.findIndex(d => d.id === dream.id);
+          if (dreamIndex !== -1) {
+            currentDreams[dreamIndex] = dream;
+            set({ dreams: [...currentDreams] });
+          }
           
           // Find similar dreams automatically
           const similarDreams = await get().findSimilarDreams(dream.id, 0.7);
@@ -162,11 +175,6 @@ export const useDreamStore = create<DreamStore>()(
         } catch (error) {
           console.error('Failed to generate dream sigil:', error);
         }
-        
-        // Store dream
-        const { dreams } = get();
-        const updatedDreams = [...dreams, dream];
-        set({ dreams: updatedDreams, currentDream: dream });
         
         return dream;
       },
@@ -180,31 +188,38 @@ export const useDreamStore = create<DreamStore>()(
           throw new Error(`Dream with id ${dreamId} not found`);
         }
         
-        const consciousnessStore = useConsciousnessStore.getState();
-        
-        // Extract dream features for sigil generation
-        const dreamFeatures = {
-          emotionalState: {
-            intensity: dream.emotionalIntensity,
-            polarity: dream.emotionalIntensity > 0.5 ? 1 : -1,
-            hue: categorizeEmotion(dream.content)
-          },
-          dreamMetrics: {
+        try {
+          // Use neural sigil store directly instead of consciousness store
+          const { generateNeuralSigil } = useNeuralSigilStore.getState();
+          
+          // Create text representation of dream for sigil generation
+          const dreamText = `${dream.title} ${dream.content} ${dream.symbols.join(' ')} ${dream.dreamType || ''} ${dream.persona || ''}`;
+          
+          // Generate sigil using neural sigil store
+          const sigil = await generateNeuralSigil(dreamText, 'dream');
+          
+          // Add dream-specific metadata
+          sigil.metadata = {
+            ...sigil.metadata,
+            dreamId: dream.id,
             lucidity: dream.lucidity,
-            symbolDensity: dream.symbols.length / 10,
-            narrativeComplexity: calculateComplexity(dream.content),
-            temporalCoherence: calculateTemporalCoherence(dream.content)
-          },
-          symbols: dream.symbols,
-          contentEmbedding: await generateContentEmbedding(dream.content),
-          dreamType: dream.dreamType,
-          persona: dream.persona
-        };
-        
-        // Generate sigil
-        const sigil = await consciousnessStore.generateNeuralSigil(dreamFeatures, 'dream');
-        
-        return sigil;
+            emotionalIntensity: dream.emotionalIntensity,
+            symbolCount: dream.symbols.length,
+            dreamType: dream.dreamType,
+            persona: dream.persona,
+            emotionalFingerprint: categorizeEmotion(dream.content),
+            brainRegions: [{
+              region: sigil.brainRegion,
+              activation: dream.lucidity
+            }],
+            strength: dream.lucidity * dream.emotionalIntensity
+          };
+          
+          return sigil;
+        } catch (error) {
+          console.error('Error generating dream sigil:', error);
+          throw error;
+        }
       },
       
       // Find similar dreams by neural sigil
@@ -214,31 +229,32 @@ export const useDreamStore = create<DreamStore>()(
         
         if (!targetDream || !targetDream.neuralSigil) return [];
         
-        const consciousnessStore = useConsciousnessStore.getState();
-        const { sigilGenerator } = consciousnessStore;
-        
-        const similarDreams: Dream[] = [];
-        
-        for (const dream of dreams) {
-          if (dream.id === dreamId || !dream.neuralSigil) continue;
+        try {
+          const { findSimilarBySigil } = useNeuralSigilStore.getState();
           
-          const similarity = await sigilGenerator.compareSigils(
-            targetDream.neuralSigil.pattern,
-            dream.neuralSigil.pattern
-          );
+          // Find similar sigils
+          const similarSigils = await findSimilarBySigil(targetDream.neuralSigil.id, threshold);
           
-          if (similarity >= threshold) {
-            similarDreams.push(dream);
+          // Map back to dreams
+          const similarDreams: Dream[] = [];
+          
+          for (const { sigil } of similarSigils) {
+            const dream = dreams.find(d => d.neuralSigil?.id === sigil.id);
+            if (dream && dream.id !== dreamId) {
+              similarDreams.push(dream);
+            }
           }
+          
+          return similarDreams.sort((a, b) => b.timestamp - a.timestamp);
+        } catch (error) {
+          console.error('Error finding similar dreams:', error);
+          return [];
         }
-        
-        return similarDreams.sort((a, b) => b.timestamp - a.timestamp);
       },
       
       // Braid multiple dreams together
       braidDreams: async (dreamIds: string[]) => {
         const { dreams } = get();
-        const consciousnessStore = useConsciousnessStore.getState();
         
         const selectedDreams = dreams.filter(d => dreamIds.includes(d.id));
         if (selectedDreams.length < 2) return;
@@ -248,17 +264,22 @@ export const useDreamStore = create<DreamStore>()(
           .filter((s): s is NeuralSigil => s !== undefined);
         
         if (sigils.length >= 2) {
-          // Create braided consciousness state
-          const sigilIds = sigils.map(s => s.id);
-          const braidResult = await consciousnessStore.braidConsciousnessStates(sigilIds);
-          
-          // Update dreams with braiding references
-          for (const dream of selectedDreams) {
-            dream.braidedWith = dreamIds.filter(id => id !== dream.id);
+          try {
+            // Create braided consciousness state using neural sigil store
+            const { braidConsciousnessStates } = useNeuralSigilStore.getState();
+            const sigilIds = sigils.map(s => s.id);
+            const braidResult = await braidConsciousnessStates(sigilIds);
+            
+            // Update dreams with braiding references
+            for (const dream of selectedDreams) {
+              dream.braidedWith = dreamIds.filter(id => id !== dream.id);
+            }
+            
+            // Save updated dreams
+            set({ dreams: [...dreams] });
+          } catch (error) {
+            console.error('Error braiding dreams:', error);
           }
-          
-          // Save updated dreams
-          set({ dreams: [...dreams] });
         }
       },
       
@@ -269,27 +290,32 @@ export const useDreamStore = create<DreamStore>()(
         
         if (!targetDream || !targetDream.neuralSigil) return null;
         
-        const consciousnessStore = useConsciousnessStore.getState();
-        
-        // Find pattern matches
-        const patternMatches = await consciousnessStore.recognizePattern(targetDream.neuralSigil);
-        
-        // Analyze brain region activation
-        const brainRegions = targetDream.neuralSigil.metadata?.brainRegions || [];
-        
-        // Calculate dream metrics
-        const analysis = {
-          dominantBrainRegion: brainRegions.length > 0 ? brainRegions.reduce((max: any, region: any) => 
-            region.activation > max.activation ? region : max
-          ) : null,
-          patternMatches,
-          emotionalSignature: targetDream.neuralSigil.metadata?.emotionalFingerprint,
-          sigilStrength: targetDream.neuralSigil.metadata?.strength,
-          relatedDreams: await get().findSimilarDreams(dreamId, 0.6),
-          timestamp: Date.now()
-        };
-        
-        return analysis;
+        try {
+          const { recognizePattern } = useNeuralSigilStore.getState();
+          
+          // Find pattern matches
+          const patternMatches = await recognizePattern(targetDream.neuralSigil);
+          
+          // Analyze brain region activation
+          const brainRegions = targetDream.neuralSigil.metadata?.brainRegions || [];
+          
+          // Calculate dream metrics
+          const analysis = {
+            dominantBrainRegion: brainRegions.length > 0 ? brainRegions.reduce((max: any, region: any) => 
+              region.activation > max.activation ? region : max
+            ) : { region: targetDream.neuralSigil.brainRegion, activation: targetDream.lucidity },
+            patternMatches,
+            emotionalSignature: targetDream.neuralSigil.metadata?.emotionalFingerprint,
+            sigilStrength: targetDream.neuralSigil.strength,
+            relatedDreams: await get().findSimilarDreams(dreamId, 0.6),
+            timestamp: Date.now()
+          };
+          
+          return analysis;
+        } catch (error) {
+          console.error('Error analyzing dream patterns:', error);
+          return null;
+        }
       },
       
       // Enhanced updateDream

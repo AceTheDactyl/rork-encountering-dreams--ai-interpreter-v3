@@ -37,6 +37,12 @@ export class PatternRecognizer {
   ): Promise<SimilarPattern[]> {
     const similar: SimilarPattern[] = [];
     
+    // Ensure sigil has valid pattern
+    if (!sigil.pattern || sigil.pattern.length === 0) {
+      console.warn('PatternRecognizer: Invalid sigil pattern in findSimilarPatterns');
+      return similar;
+    }
+    
     for (const [id, pattern] of this.patterns) {
       const similarity = this.cosineSimilarity(sigil.pattern, pattern.centroid);
       if (similarity >= threshold) {
@@ -63,10 +69,22 @@ export class PatternRecognizer {
     };
   }
   
-  private cosineSimilarity(a: number[], b: number[]): number {
-    const dot = a.reduce((sum, val, i) => sum + val * b[i], 0);
-    const magA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
-    const magB = Math.sqrt(b.reduce((sum, val) => sum + val * val, 0));
+  private cosineSimilarity(a: Float32Array | number[], b: Float32Array | number[]): number {
+    // Convert to regular arrays if needed
+    const arrayA = Array.from(a);
+    const arrayB = Array.from(b);
+    
+    if (arrayA.length !== arrayB.length) {
+      console.warn('PatternRecognizer: Array length mismatch in cosineSimilarity');
+      return 0;
+    }
+    
+    const dot = arrayA.reduce((sum, val, i) => sum + val * arrayB[i], 0);
+    const magA = Math.sqrt(arrayA.reduce((sum, val) => sum + val * val, 0));
+    const magB = Math.sqrt(arrayB.reduce((sum, val) => sum + val * val, 0));
+    
+    if (magA === 0 || magB === 0) return 0;
+    
     return dot / (magA * magB);
   }
   
@@ -90,6 +108,12 @@ export class PatternRecognizer {
     for (const sigil of sigils) {
       let bestCluster = 0;
       let bestSimilarity = -1;
+      
+      // Ensure sigil.pattern is valid
+      if (!sigil.pattern || sigil.pattern.length === 0) {
+        console.warn('PatternRecognizer: Invalid sigil pattern, skipping');
+        continue;
+      }
       
       for (let i = 0; i < clusters.length; i++) {
         const similarity = this.cosineSimilarity(sigil.pattern, clusters[i].centroid);
