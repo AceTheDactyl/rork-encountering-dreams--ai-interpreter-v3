@@ -59,7 +59,15 @@ export class PatternRecognizer {
   }
   
   async clusterSigils(sigils: NeuralSigil[]): Promise<ClusterResult> {
-    const k = Math.min(10, Math.floor(sigils.length / 5));
+    if (sigils.length === 0) {
+      return {
+        clusters: [],
+        dominantPatterns: [],
+        temporalFlow: []
+      };
+    }
+    
+    const k = Math.min(10, Math.max(1, Math.floor(sigils.length / 5)));
     const clusters = await this.kMeansClustering(sigils, k);
     
     return {
@@ -127,11 +135,16 @@ export class PatternRecognizer {
       clusters[bestCluster].strength = Math.max(clusters[bestCluster].strength, bestSimilarity);
     }
     
-    return clusters.filter(c => c.members.length > 0);
+    return clusters.filter(c => c.members && c.members.length > 0);
   }
   
   private extractDominantPatterns(clusters: PatternCluster[]): string[] {
+    if (!clusters || clusters.length === 0) {
+      return [];
+    }
+    
     return clusters
+      .filter(c => c.members && c.members.length > 0)
       .sort((a, b) => b.strength - a.strength)
       .slice(0, 3)
       .map(c => c.id);

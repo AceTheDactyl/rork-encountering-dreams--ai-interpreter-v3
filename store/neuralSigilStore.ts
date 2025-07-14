@@ -373,42 +373,76 @@ export const useNeuralSigilStore = create<NeuralSigilState & NeuralSigilActions>
         },
 
         getPatternEvolution: async (userId) => {
-          const { neuralSigils, patternRecognizer } = get();
-          if (!patternRecognizer) return null;
-          
-          const userSigils = userId 
-            ? neuralSigils.filter(s => s.metadata?.userId === userId)
-            : neuralSigils;
-          
-          const clusters = await patternRecognizer.clusterSigils(userSigils);
-          
-          // Analyze neural sigil patterns
-          const categoryDistribution = userSigils.reduce((acc, sigil) => {
-            const category = sigil.metadata?.neuralSigilData?.category || 'unknown';
-            acc[category] = (acc[category] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>);
-          
-          const breathPhaseDistribution = userSigils.reduce((acc, sigil) => {
-            const breathPhase = sigil.metadata?.neuralSigilData?.breathPhase || 'unknown';
-            acc[breathPhase] = (acc[breathPhase] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>);
-          
-          return {
-            clusters: clusters.clusters,
-            dominantPatterns: clusters.dominantPatterns,
-            temporalFlow: clusters.temporalFlow,
-            totalSigils: userSigils.length,
-            categoryDistribution,
-            breathPhaseDistribution,
-            neuralInsights: {
-              mostActiveBrainRegion: Object.entries(categoryDistribution)
-                .sort(([,a], [,b]) => b - a)[0]?.[0] || 'unknown',
-              dominantBreathPhase: Object.entries(breathPhaseDistribution)
-                .sort(([,a], [,b]) => b - a)[0]?.[0] || 'unknown'
+          try {
+            const { neuralSigils, patternRecognizer } = get();
+            if (!patternRecognizer) {
+              console.warn('Pattern recognizer not initialized');
+              return null;
             }
-          };
+            
+            const userSigils = userId 
+              ? neuralSigils.filter(s => s.metadata?.userId === userId)
+              : neuralSigils;
+            
+            if (userSigils.length === 0) {
+              return {
+                clusters: [],
+                dominantPatterns: [],
+                temporalFlow: [],
+                totalSigils: 0,
+                categoryDistribution: {},
+                breathPhaseDistribution: {},
+                neuralInsights: {
+                  mostActiveBrainRegion: 'unknown',
+                  dominantBreathPhase: 'unknown'
+                }
+              };
+            }
+            
+            const clusters = await patternRecognizer.clusterSigils(userSigils);
+            
+            // Analyze neural sigil patterns
+            const categoryDistribution = userSigils.reduce((acc, sigil) => {
+              const category = sigil.metadata?.neuralSigilData?.category || 'unknown';
+              acc[category] = (acc[category] || 0) + 1;
+              return acc;
+            }, {} as Record<string, number>);
+            
+            const breathPhaseDistribution = userSigils.reduce((acc, sigil) => {
+              const breathPhase = sigil.metadata?.neuralSigilData?.breathPhase || 'unknown';
+              acc[breathPhase] = (acc[breathPhase] || 0) + 1;
+              return acc;
+            }, {} as Record<string, number>);
+            
+            return {
+              clusters: clusters.clusters || [],
+              dominantPatterns: clusters.dominantPatterns || [],
+              temporalFlow: clusters.temporalFlow || [],
+              totalSigils: userSigils.length,
+              categoryDistribution,
+              breathPhaseDistribution,
+              neuralInsights: {
+                mostActiveBrainRegion: Object.entries(categoryDistribution)
+                  .sort(([,a], [,b]) => b - a)[0]?.[0] || 'unknown',
+                dominantBreathPhase: Object.entries(breathPhaseDistribution)
+                  .sort(([,a], [,b]) => b - a)[0]?.[0] || 'unknown'
+              }
+            };
+          } catch (error) {
+            console.error('Error generating sigil insights:', error);
+            return {
+              clusters: [],
+              dominantPatterns: [],
+              temporalFlow: [],
+              totalSigils: 0,
+              categoryDistribution: {},
+              breathPhaseDistribution: {},
+              neuralInsights: {
+                mostActiveBrainRegion: 'unknown',
+                dominantBreathPhase: 'unknown'
+              }
+            };
+          }
         },
 
         searchNeuralSigils: async (query) => {
