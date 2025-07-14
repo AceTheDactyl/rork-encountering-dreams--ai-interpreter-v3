@@ -18,6 +18,12 @@ export interface Dream {
   braidedWith?: string[]; // References to related dreams
   dreamType?: string;
   persona?: string;
+  // Legacy properties for compatibility
+  name?: string;
+  text?: string;
+  date?: string;
+  blockchainValidated?: boolean;
+  alignedBlocks?: string[];
 }
 
 export interface DreamGroup {
@@ -33,10 +39,11 @@ interface DreamStore {
   sortBy: SortBy;
   
   // Existing methods
-  addDream: (dream: Omit<Dream, 'id' | 'timestamp'>) => Promise<Dream>;
+  addDream: (dream: Partial<Dream>) => Promise<Dream>;
   updateDream: (id: string, updates: Partial<Dream>) => Promise<void>;
   deleteDream: (id: string) => Promise<void>;
   loadDreams: () => Promise<void>;
+  getDream: (id: string) => Dream | undefined;
   
   // Grouping and sorting methods
   getGroupedDreams: () => DreamGroup[];
@@ -45,7 +52,7 @@ interface DreamStore {
   
   // Neural sigil methods
   generateDreamSigil: (dreamId: string) => Promise<NeuralSigil>;
-  findSimilarDreams: (dreamId: string, threshold?: number) => Promise<Dream[]>;
+  findSimilarDreams: (dreamId: string, threshold?: number) => Promise<{ dream: Dream; similarity: number }[]>;
   braidDreams: (dreamIds: string[]) => Promise<void>;
   analyzeDreamPatterns: (dreamId: string) => Promise<any>;
 }
@@ -60,6 +67,12 @@ export const useDreamStore = create<DreamStore>()(
       // Set sort by method
       setSortBy: (sortBy: SortBy) => {
         set({ sortBy });
+      },
+      
+      // Get dream by ID
+      getDream: (id: string) => {
+        const { dreams } = get();
+        return dreams.find(d => d.id === id);
       },
       
       // Get dream sigil by dream ID
@@ -140,11 +153,24 @@ export const useDreamStore = create<DreamStore>()(
         const id = `dream_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const timestamp = Date.now();
         
-        // Create dream object
+        // Ensure required fields are present
         const dream: Dream = {
-          ...dreamData,
           id,
           timestamp,
+          title: dreamData.title || dreamData.name || 'Untitled Dream',
+          content: dreamData.content || dreamData.text || '',
+          symbols: dreamData.symbols || [],
+          lucidity: dreamData.lucidity || 0.5,
+          emotionalIntensity: dreamData.emotionalIntensity || 0.5,
+          interpretation: dreamData.interpretation,
+          dreamType: dreamData.dreamType,
+          persona: dreamData.persona,
+          // Keep legacy properties for compatibility
+          name: dreamData.name || dreamData.title,
+          text: dreamData.text || dreamData.content,
+          date: dreamData.date || new Date().toISOString(),
+          blockchainValidated: dreamData.blockchainValidated,
+          alignedBlocks: dreamData.alignedBlocks,
         };
         
         // Store dream first
@@ -193,7 +219,7 @@ export const useDreamStore = create<DreamStore>()(
           const { generateNeuralSigil } = useNeuralSigilStore.getState();
           
           // Create text representation of dream for sigil generation
-          const dreamText = `${dream.title} ${dream.content} ${dream.symbols.join(' ')} ${dream.dreamType || ''} ${dream.persona || ''}`;
+          const dreamText = `${dream.title || dream.name || ''} ${dream.content || dream.text || ''} ${(dream.symbols || []).join(' ')} ${dream.dreamType || ''} ${dream.persona || ''}`;
           
           // Generate sigil using neural sigil store
           const sigil = await generateNeuralSigil(dreamText, 'dream');
@@ -202,17 +228,17 @@ export const useDreamStore = create<DreamStore>()(
           sigil.metadata = {
             ...sigil.metadata,
             dreamId: dream.id,
-            lucidity: dream.lucidity,
-            emotionalIntensity: dream.emotionalIntensity,
-            symbolCount: dream.symbols.length,
+            lucidity: dream.lucidity || 0,
+            emotionalIntensity: dream.emotionalIntensity || 0,
+            symbolCount: (dream.symbols || []).length,
             dreamType: dream.dreamType,
             persona: dream.persona,
-            emotionalFingerprint: categorizeEmotion(dream.content),
+            emotionalFingerprint: categorizeEmotion(dream.content || dream.text || ''),
             brainRegions: [{
               region: sigil.brainRegion,
-              activation: dream.lucidity
+              activation: dream.lucidity || 0
             }],
-            strength: dream.lucidity * dream.emotionalIntensity
+            strength: (dream.lucidity || 0) * (dream.emotionalIntensity || 0)
           };
           
           return sigil;
@@ -235,17 +261,17 @@ export const useDreamStore = create<DreamStore>()(
           // Find similar sigils
           const similarSigils = await findSimilarBySigil(targetDream.neuralSigil.id, threshold);
           
-          // Map back to dreams
-          const similarDreams: Dream[] = [];
+          // Map back to dreams with similarity scores
+          const similarDreams: { dream: Dream; similarity: number }[] = [];
           
-          for (const { sigil } of similarSigils) {
+          for (const { sigil, similarity } of similarSigils) {
             const dream = dreams.find(d => d.neuralSigil?.id === sigil.id);
             if (dream && dream.id !== dreamId) {
-              similarDreams.push(dream);
+              similarDreams.push({ dream, similarity });
             }
           }
           
-          return similarDreams.sort((a, b) => b.timestamp - a.timestamp);
+          return similarDreams.sort((a, b) => b.similarity - a.similarity);
         } catch (error) {
           console.error('Error finding similar dreams:', error);
           return [];
@@ -328,7 +354,7 @@ export const useDreamStore = create<DreamStore>()(
         const updatedDream = { ...dreams[dreamIndex], ...updates };
         
         // Regenerate sigil if content changed significantly
-        if (updates.content || updates.symbols || updates.emotionalIntensity) {
+        if (updates.content || updates.text || updates.symbols || updates.emotionalIntensity) {
           try {
             const newSigil = await get().generateDreamSigil(updatedDream.id);
             updatedDream.neuralSigil = newSigil;

@@ -93,8 +93,7 @@ export const NeuralSigilVisualization: React.FC<Props> = ({
     // Convert Float32Array to regular array for processing
     const vectorArray = Array.from(vector);
     
-    for (let i = 0; i < vectorArray.length; i++) {
-      const v = vectorArray[i];
+    vectorArray.forEach((v, i) => {
       const intensity = Math.abs(v);
       const isPositive = v > 0;
       
@@ -118,7 +117,7 @@ export const NeuralSigilVisualization: React.FC<Props> = ({
           </Text>
         </View>
       );
-    }
+    });
     
     return cells;
   }, [vector, brainRegionColor]);

@@ -107,8 +107,8 @@ export default function DreamDetailScreen() {
   const persona = getPersona(dream.persona);
   const dreamType = getDreamType(dream.dreamType);
   
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+  const formatDate = (timestamp: number | string) => {
+    const date = new Date(timestamp);
     return date.toLocaleDateString('en-US', { 
       weekday: 'long',
       month: 'long', 
@@ -120,17 +120,17 @@ export default function DreamDetailScreen() {
   };
   
   const getShareContent = () => {
-    return `${dream.name}
+    return `${dream.title || dream.name}
 
 My Dream (${dreamType?.name || 'Unknown Type'}):
 
-${dream.text}
+${dream.content || dream.text}
 
 ${persona.name}'s Interpretation:
 
 ${dream.interpretation}
 
-Interpreted on ${formatDate(dream.date)}`;
+Interpreted on ${formatDate(dream.timestamp || dream.date)}`;
   };
   
   const handleShare = async () => {
@@ -142,7 +142,7 @@ Interpreted on ${formatDate(dream.date)}`;
             navigator.share && 
             typeof navigator.canShare === 'function') {
           try {
-            const shareData = { title: dream.name, text: shareContent };
+            const shareData = { title: dream.title || dream.name, text: shareContent };
             if (navigator.canShare(shareData)) {
               await navigator.share(shareData);
               return;
@@ -154,7 +154,7 @@ Interpreted on ${formatDate(dream.date)}`;
         await handleCopyToClipboard();
       } else {
         await Share.share({
-          title: dream.name,
+          title: dream.title || dream.name,
           message: shareContent,
         });
       }
@@ -243,7 +243,7 @@ Interpreted on ${formatDate(dream.date)}`;
     >
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          <Text style={styles.dreamTitle}>{dream.name}</Text>
+          <Text style={styles.dreamTitle}>{dream.title || dream.name}</Text>
           <TouchableOpacity
             style={styles.sigilToggle}
             onPress={() => setShowSigilView(!showSigilView)}
@@ -276,7 +276,7 @@ Interpreted on ${formatDate(dream.date)}`;
               </View>
             )}
           </View>
-          <Text style={styles.date}>{formatDate(dream.date)}</Text>
+          <Text style={styles.date}>{formatDate(dream.timestamp || dream.date)}</Text>
         </View>
       </View>
       
@@ -306,7 +306,7 @@ Interpreted on ${formatDate(dream.date)}`;
       
       <View style={styles.dreamContainer}>
         <Text style={styles.sectionTitle}>Your Dream</Text>
-        <Text style={styles.dreamText}>{dream.text}</Text>
+        <Text style={styles.dreamText}>{dream.content || dream.text}</Text>
       </View>
       
       <View style={styles.interpretationContainer}>
@@ -353,7 +353,10 @@ Interpreted on ${formatDate(dream.date)}`;
               {similarDreams.length > 0 && (
                 <View style={styles.similarDreamsSection}>
                   <Text style={styles.analysisTitle}>Similar Dreams</Text>
-                  {similarDreams.slice(0, 5).map(({ dream: similarDream, similarity }) => (
+                  {similarDreams.slice(0, 5).map((item) => {
+                    const similarDream = item.dream || item; // Handle both formats
+                    const similarity = item.similarity || 0.5;
+                    return (
                     <TouchableOpacity
                       key={similarDream.id}
                       style={styles.similarDreamCard}
@@ -369,7 +372,8 @@ Interpreted on ${formatDate(dream.date)}`;
                         </Text>
                       </View>
                     </TouchableOpacity>
-                  ))}
+                  );
+                  })}
                 </View>
               )}
             </View>

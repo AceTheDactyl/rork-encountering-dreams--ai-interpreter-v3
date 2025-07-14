@@ -106,25 +106,30 @@ export default function InterpreterScreen() {
       );
       
       const newDream = {
-        id: Date.now().toString(),
-        name: result.name,
-        text: dreamText.trim(),
+        title: result.name,
+        content: dreamText.trim(),
         persona: selectedPersona,
         interpretation: result.interpretation,
         dreamType: result.dreamType,
+        symbols: [],
+        lucidity: 0.5,
+        emotionalIntensity: 0.5,
+        // Legacy properties for compatibility
+        name: result.name,
+        text: dreamText.trim(),
         date: new Date().toISOString(),
         blockchainValidated: result.blockchainValidated || false,
         alignedBlocks: result.alignedBlocks || []
       };
       
       // Add dream to store
-      addDream(newDream);
+      const savedDream = await addDream(newDream);
       
       // Generate neural sigil for the dream
       try {
         const dreamSigilText = `${newDream.name} - ${newDream.text} - ${newDream.dreamType} - ${newDream.persona}`;
         await generateNeuralSigil(dreamSigilText, 'dream');
-        await generateDreamSigil(newDream.id);
+        await generateDreamSigil(savedDream.id);
       } catch (sigilError) {
         console.error('Failed to generate neural sigil:', sigilError);
       }
@@ -133,11 +138,11 @@ export default function InterpreterScreen() {
       try {
         console.log('Recording dream on blockchain:', newDream.name);
         const dreamBlock = await recordDreamOnBlockchain({
-          id: newDream.id,
-          name: newDream.name,
-          dreamType: newDream.dreamType,
-          interpretation: newDream.interpretation,
-          persona: newDream.persona
+          id: savedDream.id,
+          name: savedDream.title || savedDream.name,
+          dreamType: savedDream.dreamType,
+          interpretation: savedDream.interpretation,
+          persona: savedDream.persona
         });
         
         console.log('Dream block created:', dreamBlock.id);
@@ -145,7 +150,7 @@ export default function InterpreterScreen() {
         // If there were aligned blocks from interpretation, validate them with this dream
         if (result.alignedBlocks && result.alignedBlocks.length > 0) {
           console.log('Validating aligned blocks with dream:', result.alignedBlocks);
-          validateBlocksWithDream(result.alignedBlocks, newDream.id);
+          validateBlocksWithDream(result.alignedBlocks, savedDream.id);
         }
         
       } catch (blockchainError) {
@@ -155,14 +160,14 @@ export default function InterpreterScreen() {
       
       // Connect dream to current session if active
       if (currentSession) {
-        connectDreamToSession(newDream.id);
+        connectDreamToSession(savedDream.id);
       }
       
       Alert.alert(
         'Dream Interpreted! ✨',
-        `Your dream "${newDream.name}" has been interpreted and saved.
+        `Your dream "${savedDream.title || savedDream.name}" has been interpreted and saved.
 
-🎯 Dream Type: ${newDream.dreamType}
+🎯 Dream Type: ${savedDream.dreamType}
 🔮 Persona: ${selectedPersona}
 🔗 Blockchain: Recorded as dream block
 ${currentSession ? '🌀 Connected to your practice session' : ''}

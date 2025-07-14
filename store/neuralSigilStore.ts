@@ -151,7 +151,24 @@ export const useNeuralSigilStore = create<NeuralSigilState & NeuralSigilActions>
             return sigil;
           } catch (error) {
             console.error('Error generating neural sigil:', error);
-            throw error;
+            // Return a fallback sigil instead of throwing
+            const fallbackSigil = {
+              id: `fallback_${Date.now()}`,
+              pattern: new Float32Array(64).fill(0.5),
+              brainRegion: 'Cortical' as const,
+              timestamp: Date.now(),
+              sourceType: type,
+              strength: 0.5,
+              hash: 0,
+              metadata: { text }
+            };
+            
+            set(state => {
+              state.neuralSigils.push(fallbackSigil);
+              state.currentSigil = fallbackSigil;
+            });
+            
+            return fallbackSigil;
           }
         },
 
@@ -200,7 +217,24 @@ export const useNeuralSigilStore = create<NeuralSigilState & NeuralSigilActions>
             return sigil;
           } catch (error) {
             console.error('Error generating breath phase sigil:', error);
-            throw error;
+            // Return a fallback sigil instead of throwing
+            const fallbackSigil = {
+              id: `fallback_${Date.now()}`,
+              pattern: new Float32Array(64).fill(0.5),
+              brainRegion: 'Cortical' as const,
+              timestamp: Date.now(),
+              sourceType: type,
+              strength: 0.5,
+              hash: 0,
+              metadata: { breathPhase }
+            };
+            
+            set(state => {
+              state.neuralSigils.push(fallbackSigil);
+              state.currentSigil = fallbackSigil;
+            });
+            
+            return fallbackSigil;
           }
         },
 
