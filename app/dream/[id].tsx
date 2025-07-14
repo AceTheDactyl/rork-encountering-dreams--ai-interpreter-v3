@@ -104,8 +104,8 @@ export default function DreamDetailScreen() {
     );
   }
   
-  const persona = getPersona(dream.persona);
-  const dreamType = getDreamType(dream.dreamType);
+  const persona = getPersona((dream.persona as 'orion' | 'limnus') || 'orion');
+  const dreamType = getDreamType(dream.dreamType || '');
   
   const formatDate = (timestamp: number | string) => {
     const date = new Date(timestamp);
@@ -130,7 +130,7 @@ ${persona.name}'s Interpretation:
 
 ${dream.interpretation}
 
-Interpreted on ${formatDate(dream.timestamp || dream.date)}`;
+Interpreted on ${formatDate(dream.timestamp || dream.date || Date.now())}`;
   };
   
   const handleShare = async () => {
@@ -276,7 +276,7 @@ Interpreted on ${formatDate(dream.timestamp || dream.date)}`;
               </View>
             )}
           </View>
-          <Text style={styles.date}>{formatDate(dream.timestamp || dream.date)}</Text>
+          <Text style={styles.date}>{formatDate(dream.timestamp || dream.date || Date.now())}</Text>
         </View>
       </View>
       
