@@ -24,7 +24,7 @@ export const NeuralSigilVisualization: React.FC<Props> = ({
   const [expanded, setExpanded] = useState(false);
   const [showNeuralData, setShowNeuralData] = useState(false);
   const [pulseAnimation] = useState(new Animated.Value(0));
-  const vector = expanded ? sigil.pattern : sigil.pattern.slice(0, 12);
+  const vector = expanded ? sigil.pattern : sigil.pattern.subarray(0, 12);
 
   const brainRegionColor = useMemo(() => {
     const colors: Record<NeuralSigil['brainRegion'], string> = {
