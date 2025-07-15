@@ -3,7 +3,6 @@ import { SpiralSession, BreathCycleLog } from '@/store/limnusStore';
 import { BlockData, LimnusConsciousnessSignature as ConsciousnessSignature } from '@/store/consciousnessStore';
 import { useNeuralSigilStore } from '@/store/neuralSigilStore';
 import { useDreamStore } from '@/store/dreamStore';
-import { SigilGenerator } from '@/models/neural-sigil/sigilGenerator';
 
 interface AIMessage {
   role: 'system' | 'user' | 'assistant';

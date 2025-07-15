@@ -1,3 +1,7 @@
+// This file is a duplicate - using the main model at /models/neural-sigil/sigilGenerator.ts
+export * from '@/models/neural-sigil/sigilGenerator';
+
+/*
 export interface NeuralSigil {
   id: string;
   pattern: number[];

@@ -1,3 +1,7 @@
+// This file is a duplicate - using the main utils at /utils/neuralSigilHelpers.ts
+export * from '@/utils/neuralSigilHelpers';
+
+/*
 /**
  * Neural Sigil Helper Functions
  * Provides utilities for generating and analyzing neural sigils

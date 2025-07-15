@@ -93,16 +93,16 @@ export function generateSigilVector(data: any): number[] {
 export function detectBrainRegion(data: any): string {
   const text = data.text || data.content || '';
   
-  if (!text) return 'thalamic';
+  if (!text) return 'Thalamic';
   
   const emotionalWords = countEmotionalWords(text);
   const logicalStructure = analyzeLogicalStructure(text);
   const primalThemes = detectPrimalThemes(text);
   
-  if (primalThemes > 0.1) return 'brainstem';
-  if (emotionalWords > logicalStructure) return 'limbic';
-  if (logicalStructure > emotionalWords * 1.5) return 'cortical';
-  return 'thalamic'; // Integration state
+  if (primalThemes > 0.1) return 'Brainstem';
+  if (emotionalWords > logicalStructure) return 'Limbic';
+  if (logicalStructure > emotionalWords * 1.5) return 'Cortical';
+  return 'Thalamic'; // Integration state
 }
 
 /**

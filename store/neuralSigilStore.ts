@@ -127,20 +127,7 @@ export const useNeuralSigilStore = create<NeuralSigilState & NeuralSigilActions>
 
             // Create sigil using helper functions for consistency
             const vector = generateSigilVector({ text, content: text });
-            const rawBrainRegion = detectBrainRegion({ text, content: text });
-            
-            // Map lowercase to capitalized brain regions
-            const brainRegionMap: Record<string, NeuralSigil['brainRegion']> = {
-              'brainstem': 'Brainstem',
-              'thalamic': 'Thalamic',
-              'limbic': 'Limbic',
-              'cortical': 'Cortical',
-              'basal-ganglia': 'BasalGanglia',
-              'cerebellar': 'Cerebellar',
-              'integration': 'Integration'
-            };
-            
-            const brainRegion = brainRegionMap[rawBrainRegion] || 'Cortical';
+            const brainRegion = detectBrainRegion({ text, content: text }) as NeuralSigil['brainRegion'];
             
             const sigil: NeuralSigil = {
               id: `sigil_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -177,7 +164,7 @@ export const useNeuralSigilStore = create<NeuralSigilState & NeuralSigilActions>
                   });
                 }
               } catch (error) {
-                console.warn('Error calculating similarity for existing sigil:', error);
+                console.warn('Error calculating similarity for existing sigil:', String(error));
               }
             }
 
@@ -190,7 +177,7 @@ export const useNeuralSigilStore = create<NeuralSigilState & NeuralSigilActions>
 
             return sigil;
           } catch (error) {
-            console.error('Error generating neural sigil:', error);
+            console.error('Error generating neural sigil:', String(error));
             // Return a fallback sigil instead of throwing
             const fallbackSigil: NeuralSigil = {
               id: `fallback_${Date.now()}`,
@@ -200,7 +187,7 @@ export const useNeuralSigilStore = create<NeuralSigilState & NeuralSigilActions>
               sourceType: type,
               strength: 0.5,
               hash: 0,
-              metadata: { text, error: (error as Error).message }
+              metadata: { text, error: String(error) }
             };
             
             set(state => {
@@ -256,7 +243,7 @@ export const useNeuralSigilStore = create<NeuralSigilState & NeuralSigilActions>
 
             return sigil;
           } catch (error) {
-            console.error('Error generating breath phase sigil:', error);
+            console.error('Error generating breath phase sigil:', String(error));
             // Return a fallback sigil instead of throwing
             const fallbackSigil: NeuralSigil = {
               id: `fallback_${Date.now()}`,

@@ -1,10 +1,5 @@
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import { immer } from 'zustand/middleware/immer';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SigilGenerator, NeuralSigil, NeuralSigilGenerator } from '@/models/neural-sigil/sigilGenerator';
-import { PatternRecognizer } from '@/models/neural-sigil/patternRecognition';
-import { neuralSigils, getNeuralSigilByTernary, type NeuralSigilData } from '@/constants/neuralSigils';
+// This file is a duplicate - using the main store at /store/neuralSigilStore.ts
+export * from '@/store/neuralSigilStore';
 
 export interface PatternMatch {
   sigilId: string;
