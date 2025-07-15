@@ -1,6 +1,6 @@
 import { Persona } from '@/types/dream';
 import { SpiralSession, BreathCycleLog } from '@/store/limnusStore';
-import { BlockData, ConsciousnessSignature } from '@/store/consciousnessStore';
+import { BlockData, LimnusConsciousnessSignature as ConsciousnessSignature } from '@/store/consciousnessStore';
 import { useNeuralSigilStore } from '@/store/neuralSigilStore';
 import { useDreamStore } from '@/store/dreamStore';
 import { SigilGenerator } from '@/models/neural-sigil/sigilGenerator';
