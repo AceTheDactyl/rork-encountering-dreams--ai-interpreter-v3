@@ -108,6 +108,9 @@ export const useNeuralSigilStore = create<NeuralSigilState & NeuralSigilActions>
 
         generateNeuralSigil: async (text, type) => {
           try {
+            // Import helper functions
+            const { generateSigilVector, detectBrainRegion } = await import('@/utils/neuralSigilHelpers');
+            
             // Ensure system is initialized
             await get().initializeNeuralSystem();
             
@@ -117,7 +120,24 @@ export const useNeuralSigilStore = create<NeuralSigilState & NeuralSigilActions>
               set({ sigilGenerator: generator });
             }
 
-            const sigil = generator.generateFromText(text, type);
+            // Create sigil using helper functions for consistency
+            const vector = generateSigilVector({ text, content: text });
+            const brainRegion = detectBrainRegion({ text, content: text });
+            
+            const sigil = {
+              id: `sigil_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              pattern: new Float32Array(vector),
+              brainRegion: brainRegion as 'cortical' | 'limbic' | 'brainstem' | 'thalamic',
+              timestamp: Date.now(),
+              sourceType: type,
+              strength: Math.random() * 0.5 + 0.5, // Random strength between 0.5-1.0
+              hash: text.split('').reduce((hash, char) => hash + char.charCodeAt(0), 0),
+              metadata: { 
+                text,
+                generatedBy: 'neural-sigil-helpers',
+                vectorDimensions: vector.length
+              }
+            };
             
             // Validate sigil pattern
             if (!sigil.pattern || sigil.pattern.length === 0) {
@@ -128,7 +148,8 @@ export const useNeuralSigilStore = create<NeuralSigilState & NeuralSigilActions>
             const matches: PatternMatch[] = [];
             for (const existing of get().neuralSigils) {
               try {
-                const similarity = generator.calculateSimilarity(sigil, existing);
+                const { cosineSimilarity } = await import('@/utils/neuralSigilHelpers');
+                const similarity = cosineSimilarity(Array.from(sigil.pattern), Array.from(existing.pattern));
                 if (similarity > 0.7) {
                   matches.push({ 
                     sigilId: sigil.id, 
@@ -155,12 +176,12 @@ export const useNeuralSigilStore = create<NeuralSigilState & NeuralSigilActions>
             const fallbackSigil = {
               id: `fallback_${Date.now()}`,
               pattern: new Float32Array(64).fill(0.5),
-              brainRegion: 'Cortical' as const,
+              brainRegion: 'limbic' as const,
               timestamp: Date.now(),
               sourceType: type,
               strength: 0.5,
               hash: 0,
-              metadata: { text }
+              metadata: { text, error: error.message }
             };
             
             set(state => {
@@ -239,26 +260,36 @@ export const useNeuralSigilStore = create<NeuralSigilState & NeuralSigilActions>
         },
 
         findSimilarBySigil: async (sigilId, threshold = 0.7) => {
-          // Ensure system is initialized
-          await get().initializeNeuralSystem();
-          
-          const { neuralSigils, sigilGenerator } = get();
-          const target = neuralSigils.find(s => s.id === sigilId);
-          if (!target || !sigilGenerator) return [];
+          try {
+            // Import helper functions
+            const { cosineSimilarity } = await import('@/utils/neuralSigilHelpers');
+            
+            // Ensure system is initialized
+            await get().initializeNeuralSystem();
+            
+            const { neuralSigils } = get();
+            const target = neuralSigils.find(s => s.id === sigilId);
+            if (!target) return [];
 
-          const cachedSim = (a: NeuralSigil, b: NeuralSigil) => {
-            const key = getCacheKey(a.id, b.id);
-            if (similarityCache.has(key)) return similarityCache.get(key)!;
-            const sim = sigilGenerator.calculateSimilarity(a, b);
-            similarityCache.set(key, sim);
-            return sim;
-          };
+            const cachedSim = (a: NeuralSigil, b: NeuralSigil) => {
+              const key = getCacheKey(a.id, b.id);
+              if (similarityCache.has(key)) return similarityCache.get(key)!;
+              
+              // Use cosine similarity from helper functions
+              const sim = cosineSimilarity(Array.from(a.pattern), Array.from(b.pattern));
+              similarityCache.set(key, sim);
+              return sim;
+            };
 
-          return neuralSigils
-            .filter(s => s.id !== sigilId)
-            .map(s => ({ sigil: s, similarity: cachedSim(target, s) }))
-            .filter(r => r.similarity >= threshold)
-            .sort((a, b) => b.similarity - a.similarity);
+            return neuralSigils
+              .filter(s => s.id !== sigilId)
+              .map(s => ({ sigil: s, similarity: cachedSim(target, s) }))
+              .filter(r => r.similarity >= threshold)
+              .sort((a, b) => b.similarity - a.similarity);
+          } catch (error) {
+            console.error('Error finding similar sigils:', error);
+            return [];
+          }
         },
 
         braidConsciousnessStates: async (stateIds) => {
