@@ -8,14 +8,14 @@ export function generateSigilVector(data: any): number[] {
   const vector = new Array(64).fill(0);
   
   const text = data.text || data.content || '';
-  const words = text.toLowerCase().split(/\s+/).filter(w => w.length > 0);
+  const words = text.toLowerCase().split(/\s+/).filter((w: string) => w.length > 0);
   
   // Encode different aspects into vector dimensions
   // 0-15: Emotional tone
   const emotionalWords = ['fear', 'joy', 'anger', 'love', 'peace', 'anxiety', 'excitement', 'calm'];
   emotionalWords.forEach((word, i) => {
     if (i < 16) {
-      vector[i] = words.filter(w => w.includes(word)).length / Math.max(1, words.length);
+      vector[i] = words.filter((w: string) => w.includes(word)).length / Math.max(1, words.length);
     }
   });
   
@@ -23,7 +23,7 @@ export function generateSigilVector(data: any): number[] {
   const symbols = ['water', 'fire', 'earth', 'air', 'light', 'dark', 'spiral', 'circle', 'tree', 'mountain'];
   symbols.forEach((symbol, i) => {
     if (i + 16 < 32) {
-      vector[i + 16] = words.filter(w => w.includes(symbol)).length / Math.max(1, words.length);
+      vector[i + 16] = words.filter((w: string) => w.includes(symbol)).length / Math.max(1, words.length);
     }
   });
   
@@ -31,7 +31,7 @@ export function generateSigilVector(data: any): number[] {
   const narrativeMarkers = ['then', 'suddenly', 'after', 'before', 'while', 'during', 'next', 'finally'];
   narrativeMarkers.forEach((marker, i) => {
     if (i + 32 < 48) {
-      vector[i + 32] = words.filter(w => w.includes(marker)).length / Math.max(1, words.length);
+      vector[i + 32] = words.filter((w: string) => w.includes(marker)).length / Math.max(1, words.length);
     }
   });
   
@@ -39,7 +39,7 @@ export function generateSigilVector(data: any): number[] {
   const consciousnessWords = ['dream', 'lucid', 'aware', 'conscious', 'reality', 'vision', 'insight', 'awakening'];
   consciousnessWords.forEach((word, i) => {
     if (i + 48 < 64) {
-      vector[i + 48] = words.filter(w => w.includes(word)).length / Math.max(1, words.length);
+      vector[i + 48] = words.filter((w: string) => w.includes(word)).length / Math.max(1, words.length);
     }
   });
   
@@ -146,7 +146,7 @@ export function analyzePatternConnections(
   }, {} as Record<string, number>);
   
   const dominantRegion = Object.entries(regionCounts)
-    .sort(([,a], [,b]) => b - a)[0]?.[0] || 'unknown';
+    .sort(([,a], [,b]) => (b as number) - (a as number))[0]?.[0] || 'unknown';
   
   const timeSpan = calculateTimeSpan(matches);
   
