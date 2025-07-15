@@ -240,24 +240,35 @@ export const useDreamStore = create<DreamStore>()(
           // Generate sigil using neural sigil store
           const sigil = await generateNeuralSigil(dreamText, 'dream');
           
-          // Add dream-specific metadata
-          sigil.metadata = {
-            ...sigil.metadata,
-            dreamId: dream.id,
-            lucidity: dream.lucidity || 0,
-            emotionalIntensity: dream.emotionalIntensity || 0,
-            symbolCount: (dream.symbols || []).length,
-            dreamType: dream.dreamType,
-            persona: dream.persona,
-            emotionalFingerprint: categorizeEmotion(dream.content || dream.text || ''),
-            brainRegions: [{
-              region: sigil.brainRegion,
-              activation: dream.lucidity || 0
-            }],
-            strength: (dream.lucidity || 0) * (dream.emotionalIntensity || 0)
+          // Create a new sigil with dream-specific metadata
+          const enhancedSigil: NeuralSigil = {
+            id: sigil.id,
+            pattern: sigil.pattern,
+            brainRegion: sigil.brainRegion,
+            timestamp: sigil.timestamp,
+            sourceType: sigil.sourceType,
+            strength: sigil.strength,
+            hash: sigil.hash,
+            metadata: {
+              ...sigil.metadata,
+              dreamId: dream.id,
+              lucidity: dream.lucidity || 0,
+              emotionalIntensity: dream.emotionalIntensity || 0,
+              symbolCount: (dream.symbols || []).length,
+              dreamType: dream.dreamType,
+              persona: dream.persona,
+              emotionalFingerprint: categorizeEmotion(dream.content || dream.text || ''),
+              brainRegions: [{
+                region: sigil.brainRegion,
+                activation: dream.lucidity || 0
+              }],
+              strength: (dream.lucidity || 0) * (dream.emotionalIntensity || 0)
+            }
           };
           
-          return sigil;
+          return enhancedSigil;
+          
+
         } catch (error) {
           console.error('Error generating dream sigil:', error);
           throw error;

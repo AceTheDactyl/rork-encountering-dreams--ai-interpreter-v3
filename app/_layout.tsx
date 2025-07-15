@@ -86,9 +86,22 @@ useEffect(() => {
     const initSystem = async () => {
       try {
         console.log('Starting neural system initialization...');
-        const { initializeNeuralSystem } = useNeuralSigilStore.getState();
-        await initializeNeuralSystem();
-        console.log('Neural system initialized successfully');
+        const neuralSigilStore = useNeuralSigilStore.getState();
+        
+        if (neuralSigilStore.initializeNeuralSystem) {
+          await neuralSigilStore.initializeNeuralSystem();
+          console.log('Neural system initialized successfully');
+          
+          // Test neural sigil generation
+          try {
+            const testSigil = await neuralSigilStore.generateNeuralSigil('test dream about flying', 'dream');
+            console.log('Test sigil generated successfully:', testSigil.id);
+          } catch (error) {
+            console.error('Test sigil generation failed:', error);
+          }
+        } else {
+          console.warn('Neural system initialization method not found');
+        }
       } catch (error) {
         console.error('Failed to initialize neural system:', error);
       }

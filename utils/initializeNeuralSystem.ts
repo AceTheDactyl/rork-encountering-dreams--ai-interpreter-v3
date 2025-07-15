@@ -72,10 +72,10 @@ export function getNeuralSystemStatus() {
     
     return {
       isReady: isNeuralSystemReady(),
-      sigilCount: neuralSigilStore.sigils.size,
+      sigilCount: neuralSigilStore.neuralSigils.length,
       dreamCount: dreamStore.dreams.length,
       dreamsWithSigils: dreamStore.dreams.filter(d => d.neuralSigil || d.sigilId).length,
-      patternLibrarySize: neuralSigilStore.patternLibrary.size
+      patternLibrarySize: Object.keys(neuralSigilStore.patternLibraryMap).length
     };
   } catch (error) {
     console.error('Error getting neural system status:', error);
