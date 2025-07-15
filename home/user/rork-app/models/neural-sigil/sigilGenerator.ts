@@ -80,3 +80,4 @@ export class SigilGenerator {
     return dot / (magA * magB);
   }
 }
+*/
