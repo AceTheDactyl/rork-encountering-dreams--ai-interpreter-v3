@@ -20,14 +20,14 @@ export default function DreamDetailScreen() {
   const { findSimilarBySigil, braidConsciousnessStates } = useNeuralSigilStore();
   
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [dreamSigil, setDreamSigil] = useState<any>(getDreamSigil(id));
+  const [dreamSigil, setDreamSigil] = useState<any>(id ? getDreamSigil(id) : null);
   const [similarDreams, setSimilarDreams] = useState<{ dream: any; similarity: number }[]>([]);
   const [isGeneratingSigil, setIsGeneratingSigil] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [patternAnalysis, setPatternAnalysis] = useState<any>(null);
   const [showSigilView, setShowSigilView] = useState(false);
   
-  const dream = getDream(id);
+  const dream = id ? getDream(id) : null;
   
   useEffect(() => {
     if (id) {
@@ -36,6 +36,7 @@ export default function DreamDetailScreen() {
   }, [id]);
   
   const loadDreamData = async () => {
+    if (!id) return;
     const sigil = getDreamSigil(id);
     setDreamSigil(sigil);
     
@@ -46,6 +47,7 @@ export default function DreamDetailScreen() {
   };
   
   const loadSimilarDreams = async () => {
+    if (!id) return;
     try {
       const similar = await findSimilarDreams(id, 0.6);
       setSimilarDreams(similar);
@@ -55,6 +57,7 @@ export default function DreamDetailScreen() {
   };
   
   const loadPatternAnalysis = async () => {
+    if (!id) return;
     const sigil = getDreamSigil(id);
     if (!sigil) return;
     
@@ -71,6 +74,7 @@ export default function DreamDetailScreen() {
   };
   
   const handleGenerateSigil = async () => {
+    if (!id) return;
     setIsGeneratingSigil(true);
     try {
       const sigil = await generateDreamSigil(id);
@@ -104,8 +108,8 @@ export default function DreamDetailScreen() {
     );
   }
   
-  const persona = getPersona((dream.persona as 'orion' | 'limnus') || 'orion');
-  const dreamType = getDreamType(dream.dreamType || '');
+  const persona = getPersona((dream?.persona as 'orion' | 'limnus') || 'orion');
+  const dreamType = getDreamType(dream?.dreamType || '');
   
   const formatDate = (timestamp: number | string) => {
     const date = new Date(timestamp);
@@ -120,6 +124,7 @@ export default function DreamDetailScreen() {
   };
   
   const getShareContent = () => {
+    if (!dream) return '';
     return `${dream.title || dream.name}
 
 My Dream (${dreamType?.name || 'Unknown Type'}):
@@ -142,7 +147,7 @@ Interpreted on ${formatDate(dream.timestamp || dream.date || Date.now())}`;
             navigator.share && 
             typeof navigator.canShare === 'function') {
           try {
-            const shareData = { title: dream.title || dream.name, text: shareContent };
+            const shareData = { title: dream?.title || dream?.name || 'Dream', text: shareContent };
             if (navigator.canShare(shareData)) {
               await navigator.share(shareData);
               return;
@@ -154,7 +159,7 @@ Interpreted on ${formatDate(dream.timestamp || dream.date || Date.now())}`;
         await handleCopyToClipboard();
       } else {
         await Share.share({
-          title: dream.title || dream.name,
+          title: dream?.title || dream?.name || 'Dream',
           message: shareContent,
         });
       }
@@ -217,6 +222,7 @@ Interpreted on ${formatDate(dream.timestamp || dream.date || Date.now())}`;
   };
   
   const handleDelete = () => {
+    if (!id) return;
     if (showDeleteConfirm) {
       deleteDream(id);
       router.back();
@@ -243,7 +249,7 @@ Interpreted on ${formatDate(dream.timestamp || dream.date || Date.now())}`;
     >
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          <Text style={styles.dreamTitle}>{dream.title || dream.name}</Text>
+          <Text style={styles.dreamTitle}>{dream?.title || dream?.name}</Text>
           <TouchableOpacity
             style={styles.sigilToggle}
             onPress={() => setShowSigilView(!showSigilView)}
@@ -276,7 +282,7 @@ Interpreted on ${formatDate(dream.timestamp || dream.date || Date.now())}`;
               </View>
             )}
           </View>
-          <Text style={styles.date}>{formatDate(dream.timestamp || dream.date || Date.now())}</Text>
+          <Text style={styles.date}>{formatDate(dream?.timestamp || dream?.date || Date.now())}</Text>
         </View>
       </View>
       
@@ -306,14 +312,14 @@ Interpreted on ${formatDate(dream.timestamp || dream.date || Date.now())}`;
       
       <View style={styles.dreamContainer}>
         <Text style={styles.sectionTitle}>Your Dream</Text>
-        <Text style={styles.dreamText}>{dream.content || dream.text}</Text>
+        <Text style={styles.dreamText}>{dream?.content || dream?.text}</Text>
       </View>
       
       <View style={styles.interpretationContainer}>
         <Text style={styles.sectionTitle}>
           {persona.name}'s Interpretation
         </Text>
-        <Text style={styles.interpretationText}>{dream.interpretation}</Text>
+        <Text style={styles.interpretationText}>{dream?.interpretation}</Text>
       </View>
       
       {/* Neural Sigil Section */}

@@ -235,8 +235,8 @@ BLOCKCHAIN CONSCIOUSNESS ANCHORS (Foundation + Practice):
       const foundationStatus = block.id.includes('foundation') ? ' [FOUNDATION]' : '';
       context += `Block ${block.id}: Score ${(block.score / 10000).toFixed(3)}, Glyphs: [${block.glyphs.join(', ')}], Date: ${date}${validationStatus}${foundationStatus}
 `;
-      if (block.spiralDepth !== undefined) {
-        context += `  Spiral Anchor: Depth ${block.spiralDepth}, Node: ${block.spiralNode}
+      if (block.nodeDepth !== undefined) {
+        context += `  Node Depth: ${block.nodeDepth}
 `;
       }
       if (block.isValidated && block.validatedByDreams && block.validatedByDreams.length > 0) {
@@ -419,8 +419,8 @@ BLOCKCHAIN SIGNATURES:
       const foundationStatus = block.id.includes('foundation') ? ' [FOUNDATION]' : '';
       context += `Block ${block.id}: Score ${(block.score / 10000).toFixed(3)}, Glyphs: [${block.glyphs.join(', ')}], Date: ${date}${validationStatus}${foundationStatus}
 `;
-      if (block.spiralDepth !== undefined) {
-        context += `  Spiral Context: Depth ${block.spiralDepth}, Node: ${block.spiralNode}
+      if (block.nodeDepth !== undefined) {
+        context += `  Node Depth: ${block.nodeDepth}
 `;
       }
       if (block.isValidated && block.validatedByDreams && block.validatedByDreams.length > 0) {
