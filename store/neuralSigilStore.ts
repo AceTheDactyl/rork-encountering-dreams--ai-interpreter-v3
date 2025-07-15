@@ -1,7 +1,16 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
+import { enableMapSet } from 'immer';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Enable MapSet support for Immer
+try {
+  enableMapSet();
+  console.log('Immer MapSet plugin enabled successfully');
+} catch (error) {
+  console.warn('Failed to enable Immer MapSet plugin:', error);
+}
 import { SigilGenerator, NeuralSigil, NeuralSigilGenerator } from '@/models/neural-sigil/sigilGenerator';
 import { PatternRecognizer } from '@/models/neural-sigil/patternRecognition';
 import { neuralSigils, getNeuralSigilByTernary, type NeuralSigilData } from '@/constants/neuralSigils';
@@ -35,8 +44,9 @@ interface BraidConnection {
 
 interface NeuralSigilState {
   neuralSigils: NeuralSigil[];
-  sigils: Map<string, NeuralSigil>; // Add this for compatibility
-  patternLibrary: Map<string, any>; // Add this for compatibility
+  // Use objects instead of Maps for persistence compatibility
+  sigilsMap: Record<string, NeuralSigil>;
+  patternLibraryMap: Record<string, any>;
   sigilGenerator: SigilGenerator | null;
   neuralSigilGenerator: NeuralSigilGenerator | null;
   patternRecognizer: PatternRecognizer | null;
@@ -60,7 +70,11 @@ interface NeuralSigilActions {
   findSigilByTernary: (ternaryCode: string) => Promise<NeuralSigilData | undefined>;
   filterByCategory: (category: string | null) => void;
   initializeNeuralSystem: () => Promise<void>;
-  calculateSimilarity: (sigil1: NeuralSigil, sigil2: NeuralSigil) => number; // Add this for compatibility
+  calculateSimilarity: (sigil1: NeuralSigil, sigil2: NeuralSigil) => number;
+  // Compatibility methods for Map-like access
+  getSigils: () => Map<string, NeuralSigil>;
+  getPatternLibrary: () => Map<string, any>;
+  getSigilById: (id: string) => NeuralSigil | undefined;
 }
 
 export const useNeuralSigilStore = create<NeuralSigilState & NeuralSigilActions>()(
@@ -71,8 +85,8 @@ export const useNeuralSigilStore = create<NeuralSigilState & NeuralSigilActions>
 
       return {
         neuralSigils: [],
-        sigils: new Map<string, NeuralSigil>(),
-        patternLibrary: new Map<string, any>(),
+        sigilsMap: {},
+        patternLibraryMap: {},
         sigilGenerator: null,
         neuralSigilGenerator: null,
         patternRecognizer: null,
@@ -85,76 +99,75 @@ export const useNeuralSigilStore = create<NeuralSigilState & NeuralSigilActions>
 
         initializeNeuralSystem: async () => {
           try {
-            let generator = get().sigilGenerator;
-            let neuralGenerator = get().neuralSigilGenerator;
-            let recognizer = get().patternRecognizer;
+            console.log('Initializing neural sigil system...');
+            
+            const state = get();
+            let generator = state.sigilGenerator;
+            let neuralGenerator = state.neuralSigilGenerator;
+            let recognizer = state.patternRecognizer;
             
             if (!generator) {
+              console.log('Creating SigilGenerator instance');
               generator = SigilGenerator.getInstance();
-              set({ sigilGenerator: generator });
+              set(state => {
+                state.sigilGenerator = generator;
+              });
             }
             
             if (!neuralGenerator) {
+              console.log('Creating NeuralSigilGenerator instance');
               neuralGenerator = new NeuralSigilGenerator();
               await neuralGenerator.initialize();
-              set({ neuralSigilGenerator: neuralGenerator });
+              set(state => {
+                state.neuralSigilGenerator = neuralGenerator;
+              });
             }
             
             if (!recognizer) {
+              console.log('Creating PatternRecognizer instance');
               recognizer = new PatternRecognizer();
-              set({ patternRecognizer: recognizer });
+              set(state => {
+                state.patternRecognizer = recognizer;
+              });
             }
             
-            console.log('Neural Sigil System initialized with', neuralSigils.length, 'neural sigils');
+            console.log('Neural Sigil System initialized successfully with', neuralSigils.length, 'neural sigils');
           } catch (error) {
             console.error('Failed to initialize neural sigil system:', error);
+            throw error;
           }
         },
 
         generateNeuralSigil: async (text, type) => {
           try {
-            // Import helper functions
-            const { generateSigilVector, detectBrainRegion } = await import('@/utils/neuralSigilHelpers');
+            console.log('Starting neural sigil generation for text:', text.substring(0, 50) + '...');
             
             // Ensure system is initialized
             await get().initializeNeuralSystem();
             
             let generator = get().sigilGenerator;
             if (!generator) {
+              console.log('Creating new SigilGenerator instance');
               generator = SigilGenerator.getInstance();
-              set({ sigilGenerator: generator });
+              set(state => {
+                state.sigilGenerator = generator;
+              });
             }
 
-            // Create sigil using helper functions for consistency
-            const vector = generateSigilVector({ text, content: text });
-            const brainRegion = detectBrainRegion({ text, content: text }) as NeuralSigil['brainRegion'];
+            // Use the sigil generator directly instead of helper functions to avoid import issues
+            console.log('Generating sigil using SigilGenerator');
+            const sigil = generator.generateFromText(text, type);
             
-            const sigil: NeuralSigil = {
-              id: `sigil_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-              pattern: new Float32Array(vector),
-              brainRegion,
-              timestamp: Date.now(),
-              sourceType: type,
-              strength: Math.random() * 0.5 + 0.5, // Random strength between 0.5-1.0
-              hash: text.split('').reduce((hash, char) => hash + char.charCodeAt(0), 0),
-              metadata: { 
-                text,
-                generatedBy: 'neural-sigil-helpers',
-                vectorDimensions: vector.length
-              }
-            };
+            console.log('Generated sigil:', sigil.id, 'with pattern length:', sigil.pattern.length);
             
-            // Validate sigil pattern
-            if (!sigil.pattern || sigil.pattern.length === 0) {
-              console.warn('Generated sigil has invalid pattern, creating default');
-              sigil.pattern = new Float32Array(64).fill(0.5);
-            }
-
+            // Find similar sigils
             const matches: PatternMatch[] = [];
-            for (const existing of get().neuralSigils) {
+            const existingSigils = get().neuralSigils;
+            console.log('Checking similarity against', existingSigils.length, 'existing sigils');
+            
+            for (const existing of existingSigils) {
               try {
-                const { cosineSimilarity } = await import('@/utils/neuralSigilHelpers');
-                const similarity = cosineSimilarity(Array.from(sigil.pattern), Array.from(existing.pattern));
+                const similarity = generator.calculateSimilarity(sigil, existing);
                 if (similarity > 0.7) {
                   matches.push({ 
                     sigilId: sigil.id, 
@@ -168,16 +181,20 @@ export const useNeuralSigilStore = create<NeuralSigilState & NeuralSigilActions>
               }
             }
 
+            console.log('Found', matches.length, 'similar sigils');
+
+            // Update state using immer
             set(state => {
               state.neuralSigils.push(sigil);
-              state.sigils.set(sigil.id, sigil);
+              state.sigilsMap[sigil.id] = sigil;
               state.currentSigil = sigil;
               state.patternMatches.push(...matches);
             });
 
+            console.log('Successfully generated and stored neural sigil');
             return sigil;
           } catch (error) {
-            console.error('Error generating neural sigil:', String(error));
+            console.error('Error generating neural sigil:', error);
             // Return a fallback sigil instead of throwing
             const fallbackSigil: NeuralSigil = {
               id: `fallback_${Date.now()}`,
@@ -192,6 +209,7 @@ export const useNeuralSigilStore = create<NeuralSigilState & NeuralSigilActions>
             
             set(state => {
               state.neuralSigils.push(fallbackSigil);
+              state.sigilsMap[fallbackSigil.id] = fallbackSigil;
               state.currentSigil = fallbackSigil;
             });
             
@@ -267,31 +285,38 @@ export const useNeuralSigilStore = create<NeuralSigilState & NeuralSigilActions>
 
         findSimilarBySigil: async (sigilId, threshold = 0.7) => {
           try {
-            // Import helper functions
-            const { cosineSimilarity } = await import('@/utils/neuralSigilHelpers');
+            console.log('Finding similar sigils for:', sigilId);
             
             // Ensure system is initialized
             await get().initializeNeuralSystem();
             
-            const { neuralSigils } = get();
+            const { neuralSigils, sigilGenerator } = get();
             const target = neuralSigils.find(s => s.id === sigilId);
-            if (!target) return [];
+            if (!target) {
+              console.warn('Target sigil not found:', sigilId);
+              return [];
+            }
+
+            console.log('Found target sigil, comparing against', neuralSigils.length, 'sigils');
 
             const cachedSim = (a: NeuralSigil, b: NeuralSigil) => {
               const key = getCacheKey(a.id, b.id);
               if (similarityCache.has(key)) return similarityCache.get(key)!;
               
-              // Use cosine similarity from helper functions
-              const sim = cosineSimilarity(Array.from(a.pattern), Array.from(b.pattern));
+              // Use sigil generator's similarity calculation
+              const sim = sigilGenerator?.calculateSimilarity(a, b) || 0;
               similarityCache.set(key, sim);
               return sim;
             };
 
-            return neuralSigils
+            const results = neuralSigils
               .filter(s => s.id !== sigilId)
               .map(s => ({ sigil: s, similarity: cachedSim(target, s) }))
               .filter(r => r.similarity >= threshold)
               .sort((a, b) => b.similarity - a.similarity);
+              
+            console.log('Found', results.length, 'similar sigils above threshold', threshold);
+            return results;
           } catch (error) {
             console.error('Error finding similar sigils:', error);
             return [];
@@ -522,6 +547,23 @@ export const useNeuralSigilStore = create<NeuralSigilState & NeuralSigilActions>
             console.warn('Error calculating similarity:', error);
             return 0;
           }
+        },
+        
+        // Compatibility methods for Map-like access
+        getSigils: () => {
+          const state = get();
+          return new Map(Object.entries(state.sigilsMap));
+        },
+        
+        getPatternLibrary: () => {
+          const state = get();
+          return new Map(Object.entries(state.patternLibraryMap));
+        },
+        
+        // Helper method to get sigil by ID
+        getSigilById: (id: string) => {
+          const state = get();
+          return state.sigilsMap[id] || state.neuralSigils.find(s => s.id === id);
         }
       };
     }),
@@ -530,6 +572,12 @@ export const useNeuralSigilStore = create<NeuralSigilState & NeuralSigilActions>
       storage: createJSONStorage(() => AsyncStorage),
       partialize: state => ({
         neuralSigils: state.neuralSigils.slice(-500),
+        sigilsMap: Object.fromEntries(
+          Object.entries(state.sigilsMap).slice(-500)
+        ),
+        patternLibraryMap: Object.fromEntries(
+          Object.entries(state.patternLibraryMap).slice(-100)
+        ),
         patternMatches: state.patternMatches.slice(-200),
         sigilBraids: state.sigilBraids.slice(-50),
         selectedCategory: state.selectedCategory

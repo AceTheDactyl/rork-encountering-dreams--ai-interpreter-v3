@@ -37,7 +37,7 @@ interface DreamStore {
   dreams: Dream[];
   currentDream: Dream | null;
   sortBy: SortBy;
-  sigilToDreamId: Map<string, string>; // New reverse mapping
+  sigilToDreamIdMap: Record<string, string>; // Use object instead of Map for persistence
   
   // Existing methods
   addDream: (dream: Partial<Dream>) => Promise<Dream>;
@@ -66,7 +66,7 @@ export const useDreamStore = create<DreamStore>()(
       dreams: [],
       currentDream: null,
       sortBy: 'date',
-      sigilToDreamId: new Map<string, string>(),
+      sigilToDreamIdMap: {},
       
       // Set sort by method
       setSortBy: (sortBy: SortBy) => {
@@ -81,8 +81,8 @@ export const useDreamStore = create<DreamStore>()(
       
       // Get dream by sigil ID
       getDreamBySigilId: (sigilId: string) => {
-        const { sigilToDreamId, dreams } = get();
-        const dreamId = sigilToDreamId.get(sigilId);
+        const { sigilToDreamIdMap, dreams } = get();
+        const dreamId = sigilToDreamIdMap[sigilId];
         return dreamId ? dreams.find(d => d.id === dreamId) : undefined;
       },
       
@@ -202,10 +202,10 @@ export const useDreamStore = create<DreamStore>()(
             currentDreams[dreamIndex] = dream;
             
             // Update reverse mapping
-            const newSigilToDreamId = new Map(get().sigilToDreamId);
-            newSigilToDreamId.set(sigil.id, dream.id);
+            const newSigilToDreamIdMap = { ...get().sigilToDreamIdMap };
+            newSigilToDreamIdMap[sigil.id] = dream.id;
             
-            set({ dreams: [...currentDreams], sigilToDreamId: newSigilToDreamId });
+            set({ dreams: [...currentDreams], sigilToDreamIdMap: newSigilToDreamIdMap });
           }
           
           // Find similar dreams automatically
@@ -375,9 +375,9 @@ export const useDreamStore = create<DreamStore>()(
             // Remove old sigil mapping if it exists
             const oldSigil = dreams[dreamIndex].neuralSigil;
             if (oldSigil) {
-              const newSigilToDreamId = new Map(get().sigilToDreamId);
-              newSigilToDreamId.delete(oldSigil.id);
-              set({ sigilToDreamId: newSigilToDreamId });
+              const newSigilToDreamIdMap = { ...get().sigilToDreamIdMap };
+              delete newSigilToDreamIdMap[oldSigil.id];
+              set({ sigilToDreamIdMap: newSigilToDreamIdMap });
             }
             
             const newSigil = await get().generateDreamSigil(updatedDream.id);
@@ -385,9 +385,9 @@ export const useDreamStore = create<DreamStore>()(
             updatedDream.sigilId = newSigil.id;
             
             // Update reverse mapping with new sigil
-            const newSigilToDreamId = new Map(get().sigilToDreamId);
-            newSigilToDreamId.set(newSigil.id, updatedDream.id);
-            set({ sigilToDreamId: newSigilToDreamId });
+            const newSigilToDreamIdMap = { ...get().sigilToDreamIdMap };
+            newSigilToDreamIdMap[newSigil.id] = updatedDream.id;
+            set({ sigilToDreamIdMap: newSigilToDreamIdMap });
           } catch (error) {
             console.error('Failed to regenerate dream sigil:', error);
           }
@@ -400,14 +400,14 @@ export const useDreamStore = create<DreamStore>()(
       
       // Other existing methods remain the same
       deleteDream: async (id: string) => {
-        const { dreams, sigilToDreamId } = get();
+        const { dreams, sigilToDreamIdMap } = get();
         const dreamToDelete = dreams.find(d => d.id === id);
         
         // Remove from reverse mapping if sigil exists
         if (dreamToDelete?.neuralSigil) {
-          const newSigilToDreamId = new Map(sigilToDreamId);
-          newSigilToDreamId.delete(dreamToDelete.neuralSigil.id);
-          set({ sigilToDreamId: newSigilToDreamId });
+          const newSigilToDreamIdMap = { ...sigilToDreamIdMap };
+          delete newSigilToDreamIdMap[dreamToDelete.neuralSigil.id];
+          set({ sigilToDreamIdMap: newSigilToDreamIdMap });
         }
         
         const filteredDreams = dreams.filter(d => d.id !== id);
@@ -417,17 +417,17 @@ export const useDreamStore = create<DreamStore>()(
       loadDreams: async () => {
         // Dreams are automatically loaded from persistence
         // Initialize reverse mapping for existing dreams
-        const { dreams, sigilToDreamId } = get();
-        const newSigilToDreamId = new Map(sigilToDreamId);
+        const { dreams, sigilToDreamIdMap } = get();
+        const newSigilToDreamIdMap = { ...sigilToDreamIdMap };
         
         dreams.forEach(dream => {
-          if (dream.neuralSigil?.id && !newSigilToDreamId.has(dream.neuralSigil.id)) {
-            newSigilToDreamId.set(dream.neuralSigil.id, dream.id);
+          if (dream.neuralSigil?.id && !newSigilToDreamIdMap[dream.neuralSigil.id]) {
+            newSigilToDreamIdMap[dream.neuralSigil.id] = dream.id;
           }
         });
         
-        if (newSigilToDreamId.size !== sigilToDreamId.size) {
-          set({ sigilToDreamId: newSigilToDreamId });
+        if (Object.keys(newSigilToDreamIdMap).length !== Object.keys(sigilToDreamIdMap).length) {
+          set({ sigilToDreamIdMap: newSigilToDreamIdMap });
         }
         
         console.log('Dreams loaded from persistence, reverse mapping initialized');
@@ -436,16 +436,16 @@ export const useDreamStore = create<DreamStore>()(
       // Rebuild sigil to dream ID mapping
       rebuildSigilMapping: () => {
         const { dreams } = get();
-        const newSigilToDreamId = new Map<string, string>();
+        const newSigilToDreamIdMap: Record<string, string> = {};
         
         dreams.forEach(dream => {
           if (dream.neuralSigil?.id) {
-            newSigilToDreamId.set(dream.neuralSigil.id, dream.id);
+            newSigilToDreamIdMap[dream.neuralSigil.id] = dream.id;
           }
         });
         
-        set({ sigilToDreamId: newSigilToDreamId });
-        console.log(`Rebuilt sigil mapping for ${newSigilToDreamId.size} dreams`);
+        set({ sigilToDreamIdMap: newSigilToDreamIdMap });
+        console.log(`Rebuilt sigil mapping for ${Object.keys(newSigilToDreamIdMap).length} dreams`);
       },
     }),
     {
@@ -455,7 +455,7 @@ export const useDreamStore = create<DreamStore>()(
         dreams: state.dreams.slice(0, 100), // Limit stored dreams
         currentDream: state.currentDream,
         sortBy: state.sortBy,
-        sigilToDreamId: state.sigilToDreamId
+        sigilToDreamIdMap: state.sigilToDreamIdMap
       })
     }
   )
