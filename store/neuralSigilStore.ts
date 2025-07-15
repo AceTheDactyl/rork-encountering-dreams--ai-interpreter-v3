@@ -35,6 +35,8 @@ interface BraidConnection {
 
 interface NeuralSigilState {
   neuralSigils: NeuralSigil[];
+  sigils: Map<string, NeuralSigil>; // Add this for compatibility
+  patternLibrary: Map<string, any>; // Add this for compatibility
   sigilGenerator: SigilGenerator | null;
   neuralSigilGenerator: NeuralSigilGenerator | null;
   patternRecognizer: PatternRecognizer | null;
@@ -58,6 +60,7 @@ interface NeuralSigilActions {
   findSigilByTernary: (ternaryCode: string) => Promise<NeuralSigilData | undefined>;
   filterByCategory: (category: string | null) => void;
   initializeNeuralSystem: () => Promise<void>;
+  calculateSimilarity: (sigil1: NeuralSigil, sigil2: NeuralSigil) => number; // Add this for compatibility
 }
 
 export const useNeuralSigilStore = create<NeuralSigilState & NeuralSigilActions>()(
@@ -68,6 +71,8 @@ export const useNeuralSigilStore = create<NeuralSigilState & NeuralSigilActions>
 
       return {
         neuralSigils: [],
+        sigils: new Map<string, NeuralSigil>(),
+        patternLibrary: new Map<string, any>(),
         sigilGenerator: null,
         neuralSigilGenerator: null,
         patternRecognizer: null,
@@ -165,6 +170,7 @@ export const useNeuralSigilStore = create<NeuralSigilState & NeuralSigilActions>
 
             set(state => {
               state.neuralSigils.push(sigil);
+              state.sigils.set(sigil.id, sigil);
               state.currentSigil = sigil;
               state.patternMatches.push(...matches);
             });
@@ -505,6 +511,17 @@ export const useNeuralSigilStore = create<NeuralSigilState & NeuralSigilActions>
               state.searchResults = [];
             }
           });
+        },
+        
+        calculateSimilarity: (sigil1: NeuralSigil, sigil2: NeuralSigil) => {
+          try {
+            // Use cosine similarity from helper functions
+            const { cosineSimilarity } = require('@/utils/neuralSigilHelpers');
+            return cosineSimilarity(Array.from(sigil1.pattern), Array.from(sigil2.pattern));
+          } catch (error) {
+            console.warn('Error calculating similarity:', error);
+            return 0;
+          }
         }
       };
     }),

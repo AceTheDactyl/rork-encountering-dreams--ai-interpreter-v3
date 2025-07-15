@@ -9,6 +9,7 @@ import Colors from "@/constants/colors";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { trpc, trpcClient } from "@/lib/trpc";
 import { useNeuralSigilStore } from "@/store/neuralSigilStore";
+import { initializeNeuralSystem, getNeuralSystemStatus } from "@/utils/initializeNeuralSystem";
 import React from "react";
 
 // Simple Error Boundary
@@ -82,11 +83,18 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
 useEffect(() => {
-    // Initialize neural sigil system on app start
+    // Initialize comprehensive neural sigil system on app start
     const initSystem = async () => {
       try {
-        console.log('Neural sigil system ready');
-        // Neural sigil store is automatically initialized via Zustand
+        console.log('Starting neural system initialization...');
+        const success = await initializeNeuralSystem();
+        
+        if (success) {
+          const status = getNeuralSystemStatus();
+          console.log('Neural system status:', status);
+        } else {
+          console.warn('Neural system initialization failed');
+        }
       } catch (error) {
         console.error('Failed to initialize neural sigil system:', error);
       }
