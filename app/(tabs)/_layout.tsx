@@ -36,14 +36,14 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Spiralite",
+          title: "Home",
           tabBarIcon: ({ color }) => <Brain size={24} color={color} />,
         }}
       />
       <Tabs.Screen
         name="spiral"
         options={{
-          title: "Meditation",
+          title: "Practice",
           tabBarIcon: ({ color }) => <Flower size={24} color={color} />,
         }}
       />

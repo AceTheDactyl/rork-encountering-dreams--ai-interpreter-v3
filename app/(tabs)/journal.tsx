@@ -1,11 +1,35 @@
 import React, { useCallback, useState, useEffect } from 'react';
-import { StyleSheet, View, FlatList, RefreshControl, Text, TouchableOpacity, Animated } from 'react-native';
+import { 
+  StyleSheet, 
+  View, 
+  FlatList, 
+  RefreshControl, 
+  Text, 
+  TouchableOpacity, 
+  Animated, 
+  TextInput,
+  ScrollView,
+  StatusBar
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Search, Filter, Hexagon, TrendingUp, BookOpen, Sparkles } from 'lucide-react-native';
+import { 
+  Search, 
+  Filter, 
+  Hexagon, 
+  TrendingUp, 
+  BookOpen, 
+  Sparkles, 
+  X, 
+  Plus,
+  Calendar,
+  Eye,
+  ArrowRight
+} from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import { useDreamStore } from '@/store/dreamStore';
 import { useNeuralSigilStore } from '@/store/neuralSigilStore';
-import Colors from '@/constants/colors';
+import Colors, { DesignTokens } from '@/constants/colors';
 import DreamLogItem from '@/components/DreamLogItem';
 import EmptyState from '@/components/EmptyState';
 import SortButton from '@/components/SortButton';
@@ -13,6 +37,7 @@ import SortModal from '@/components/SortModal';
 
 export default function JournalScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { getGroupedDreams, sortBy, dreams, generateDreamSigil, getDreamSigil } = useDreamStore();
   const { neuralSigils, findSimilarBySigil } = useNeuralSigilStore();
   const [refreshing, setRefreshing] = useState(false);
@@ -20,6 +45,9 @@ export default function JournalScreen() {
   const [showSigilView, setShowSigilView] = useState(false);
   const [dreamSigilStats, setDreamSigilStats] = useState({ generated: 0, total: 0 });
   const [headerAnimation] = useState(new Animated.Value(0));
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
   
   useEffect(() => {
     Animated.timing(headerAnimation, {
@@ -57,8 +85,47 @@ export default function JournalScreen() {
     updateSigilStats();
   };
   
+  // Apply search and filters
+  const filteredGroupedDreams = React.useMemo(() => {
+    let groups = groupedDreams;
+    
+    // Apply search filter
+    if (searchQuery.trim()) {
+      groups = groups.map(group => ({
+        ...group,
+        dreams: group.dreams.filter(dream => 
+          (dream.title || dream.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (dream.content || dream.text || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (dream.interpretation || '').toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      })).filter(group => group.dreams.length > 0);
+    }
+    
+    // Apply additional filters
+    if (selectedFilter) {
+      groups = groups.map(group => ({
+        ...group,
+        dreams: group.dreams.filter(dream => {
+          switch (selectedFilter) {
+            case 'lucid':
+              return (dream.lucidity || 0) > 0.7;
+            case 'sigils':
+              return !!dream.neuralSigil;
+            case 'recent':
+              const weekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+              return dream.timestamp > weekAgo;
+            default:
+              return true;
+          }
+        })
+      })).filter(group => group.dreams.length > 0);
+    }
+    
+    return groups;
+  }, [groupedDreams, searchQuery, selectedFilter]);
+  
   // Flatten grouped dreams for FlatList
-  const flattenedData = groupedDreams.flatMap(group => 
+  const flattenedData = filteredGroupedDreams.flatMap(group => 
     group.dreams.map((dream, index) => ({
       ...dream,
       showGroupHeader: index === 0 && isGrouped,
@@ -79,6 +146,12 @@ export default function JournalScreen() {
   }, [dreams]);
 
   const getSubtitleText = () => {
+    const displayedTotal = filteredGroupedDreams.reduce((total, group) => total + group.dreams.length, 0);
+    
+    if (searchQuery || selectedFilter) {
+      return `${displayedTotal} of ${dreams.length} dreams shown`;
+    }
+    
     if (isFiltered) {
       const totalAllDreams = dreams.length;
       return `${totalDreams} of ${totalAllDreams} dreams shown`;
@@ -91,118 +164,200 @@ export default function JournalScreen() {
     return `${totalDreams} dream${totalDreams !== 1 ? 's' : ''} recorded`;
   };
   
+  const filterOptions = [
+    { id: null, label: 'All Dreams', icon: BookOpen },
+    { id: 'recent', label: 'Recent', icon: Calendar },
+    { id: 'lucid', label: 'Lucid', icon: Eye },
+    { id: 'sigils', label: 'With Sigils', icon: Sparkles },
+  ];
+  
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
-      {totalDreams > 0 ? (
-        <>
-          <Animated.View 
-            style={[
-              styles.header,
-              {
-                opacity: headerAnimation,
-                transform: [{
-                  translateY: headerAnimation.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [-20, 0],
-                  }),
-                }],
-              },
-            ]}
-          >
-            <LinearGradient
-              colors={[Colors.dark.backgroundSecondary, Colors.dark.background]}
-              style={styles.headerGradient}
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.dark.background} />
+      
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
+        <View style={styles.headerContent}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.headerTitle}>Dream Journal</Text>
+            <Text style={styles.headerSubtitle}>
+              {getSubtitleText()}
+            </Text>
+          </View>
+          
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={[styles.headerButton, showSearch && styles.headerButtonActive]}
+              onPress={() => setShowSearch(!showSearch)}
+              activeOpacity={0.7}
             >
-              <View style={styles.headerContent}>
-                <View style={styles.titleRow}>
-                  <View style={styles.titleIconContainer}>
-                    <BookOpen size={24} color={Colors.dark.primary} />
-                  </View>
-                  <Text style={styles.headerTitle}>Dream Journal</Text>
-                </View>
-                <View style={styles.headerActions}>
-                  <TouchableOpacity 
-                    style={[
-                      styles.sigilToggle,
-                      showSigilView && styles.sigilToggleActive
-                    ]}
-                    onPress={() => setShowSigilView(!showSigilView)}
-                  >
-                    <Hexagon size={16} color={showSigilView ? Colors.dark.background : Colors.dark.primary} />
-                  </TouchableOpacity>
-                  <SortButton onPress={() => setSortModalVisible(true)} />
-                </View>
-              </View>
-              <View style={styles.statsRow}>
-                <Text style={styles.headerSubtitle}>
-                  {getSubtitleText()}
-                </Text>
-                <View style={styles.sigilStats}>
-                  <View style={styles.sigilStatsIcon}>
-                    <Sparkles size={12} color={Colors.dark.primary} />
-                  </View>
-                  <Text style={styles.sigilStatsText}>
-                    {dreamSigilStats.generated}/{dreamSigilStats.total} sigils
-                  </Text>
-                </View>
-              </View>
-              {dreamSigilStats.generated < dreamSigilStats.total && (
-                <TouchableOpacity 
-                  style={styles.generateSigilsButton}
-                  onPress={generateMissingSigils}
-                >
-                  <LinearGradient
-                    colors={[Colors.dark.primary, Colors.dark.secondary]}
-                    style={styles.generateSigilsGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                  >
-                    <TrendingUp size={14} color={Colors.dark.background} />
-                    <Text style={styles.generateSigilsText}>
-                      Generate {dreamSigilStats.total - dreamSigilStats.generated} Missing Sigils
-                    </Text>
-                  </LinearGradient>
+              {showSearch ? (
+                <X size={18} color={showSearch ? Colors.dark.primary : Colors.dark.textSecondary} />
+              ) : (
+                <Search size={18} color={Colors.dark.textSecondary} />
+              )}
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[
+                styles.headerButton,
+                showSigilView && styles.headerButtonActive
+              ]}
+              onPress={() => setShowSigilView(!showSigilView)}
+              activeOpacity={0.7}
+            >
+              <Hexagon size={18} color={showSigilView ? Colors.dark.primary : Colors.dark.textSecondary} />
+            </TouchableOpacity>
+            
+            <SortButton
+              currentSort={sortBy}
+              onPress={() => setSortModalVisible(true)}
+            />
+            
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => router.push('/(tabs)/')}
+              activeOpacity={0.7}
+            >
+              <LinearGradient
+                colors={Colors.dark.gradientPrimary}
+                style={styles.addButtonGradient}
+              >
+                <Plus size={16} color={Colors.dark.background} />
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+        
+        {/* Search Bar */}
+        {showSearch && (
+          <Animated.View style={styles.searchContainer}>
+            <View style={styles.searchInputContainer}>
+              <Search size={16} color={Colors.dark.textTertiary} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search dreams..."
+                placeholderTextColor={Colors.dark.textTertiary}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoFocus
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <X size={16} color={Colors.dark.textTertiary} />
                 </TouchableOpacity>
               )}
-            </LinearGradient>
+            </View>
           </Animated.View>
+        )}
+        
+        {/* Filter Pills */}
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={styles.filtersContainer}
+          contentContainerStyle={styles.filtersContent}
+        >
+          {filterOptions.map((option) => {
+            const IconComponent = option.icon;
+            const isSelected = selectedFilter === option.id;
+            
+            return (
+              <TouchableOpacity
+                key={option.id || 'all'}
+                style={[styles.filterPill, isSelected && styles.filterPillActive]}
+                onPress={() => setSelectedFilter(isSelected ? null : option.id)}
+                activeOpacity={0.7}
+              >
+                <IconComponent 
+                  size={14} 
+                  color={isSelected ? Colors.dark.background : Colors.dark.textSecondary} 
+                />
+                <Text style={[styles.filterPillText, isSelected && styles.filterPillTextActive]}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+        
+        {/* Sigil Stats */}
+        <View style={styles.statsRow}>
+          <View style={styles.sigilStats}>
+            <View style={styles.sigilStatsIcon}>
+              <Sparkles size={12} color={Colors.dark.secondary} />
+            </View>
+            <Text style={styles.sigilStatsText}>
+              {dreamSigilStats.generated}/{dreamSigilStats.total} sigils generated
+            </Text>
+          </View>
           
-          <FlatList
-            data={flattenedData}
-            renderItem={({ item }) => (
-              <DreamLogItem 
-                dream={item} 
-                showGroupHeader={item.showGroupHeader}
-                groupTitle={item.groupTitle}
-                showSigilView={showSigilView}
-              />
-            )}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor={Colors.dark.primary}
-                colors={[Colors.dark.primary]}
-              />
-            }
-          />
-        </>
-      ) : (
-        <EmptyState
-          title={isFiltered ? "No dreams of this type" : "No dreams recorded"}
-          message={isFiltered 
-            ? "Try changing the filter to see dreams of other types, or visit the Spiralite tab to record a new dream."
-            : "Visit the Spiralite tab to interpret your first dream and start building your personal dream journal."
+          {dreamSigilStats.generated < dreamSigilStats.total && (
+            <TouchableOpacity 
+              style={styles.generateSigilsButton}
+              onPress={generateMissingSigils}
+              activeOpacity={0.8}
+            >
+              <TrendingUp size={12} color={Colors.dark.primary} />
+              <Text style={styles.generateSigilsText}>
+                Generate {dreamSigilStats.total - dreamSigilStats.generated}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
+      {/* Dreams List */}
+      {totalDreams > 0 ? (
+        <FlatList
+          data={flattenedData}
+          renderItem={({ item }) => (
+            <DreamLogItem 
+              dream={item} 
+              showGroupHeader={item.showGroupHeader}
+              groupTitle={item.groupTitle}
+              showSigilView={showSigilView}
+              onPress={() => router.push(`/dream/${item.id}`)}
+            />
+          )}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={[
+            styles.listContent,
+            { paddingBottom: insets.bottom + 20 }
+          ]}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={Colors.dark.primary}
+              colors={[Colors.dark.primary]}
+            />
           }
-          icon="moon"
         />
+      ) : (
+        <View style={[styles.emptyContainer, { paddingBottom: insets.bottom }]}>
+          <EmptyState
+            title={searchQuery || selectedFilter ? "No Dreams Found" : (isFiltered ? "No dreams of this type" : "No dreams recorded")}
+            message={searchQuery || selectedFilter 
+              ? "Try adjusting your search or filters"
+              : (isFiltered 
+                ? "Try changing the filter to see dreams of other types, or visit the Spiralite tab to record a new dream."
+                : "Visit the Spiralite tab to interpret your first dream and start building your personal dream journal."
+              )
+            }
+            icon="moon"
+          />
+        </View>
       )}
       
       <SortModal
         visible={sortModalVisible}
+        currentSort={sortBy}
+        onSort={(newSort) => {
+          // Handle sort logic here if needed
+          setSortModalVisible(false);
+        }}
         onClose={() => setSortModalVisible(false)}
       />
     </View>
@@ -214,122 +369,175 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.dark.background,
   },
+  
+  // Header
   header: {
-    marginHorizontal: -20,
-    marginBottom: 12,
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-  headerGradient: {
-    paddingHorizontal: 28,
-    paddingTop: 24,
-    paddingBottom: 20,
+    backgroundColor: Colors.dark.background,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.dark.border,
+    paddingHorizontal: DesignTokens.spacing.xl,
+    paddingBottom: DesignTokens.spacing.lg,
   },
   headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
+    alignItems: 'flex-start',
+    marginBottom: DesignTokens.spacing.lg,
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  titleIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.dark.primary + '20',
-    alignItems: 'center',
-    justifyContent: 'center',
+  headerLeft: {
+    flex: 1,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: DesignTokens.typography.sizes.xxxl,
+    fontWeight: DesignTokens.typography.weights.black,
     color: Colors.dark.text,
+    marginBottom: DesignTokens.spacing.xs,
     letterSpacing: -0.5,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: Colors.dark.subtext,
-    flex: 1,
-    fontWeight: '500',
+    fontSize: DesignTokens.typography.sizes.base,
+    color: Colors.dark.textSecondary,
+    fontWeight: DesignTokens.typography.weights.medium,
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: DesignTokens.spacing.sm,
   },
-  sigilToggle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  headerButton: {
+    width: 36,
+    height: 36,
+    borderRadius: DesignTokens.borderRadius.md,
     backgroundColor: Colors.dark.surface,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: Colors.dark.border,
   },
-  sigilToggleActive: {
+  headerButtonActive: {
+    backgroundColor: Colors.dark.primary + '20',
+    borderColor: Colors.dark.primary + '40',
+  },
+  addButton: {
+    borderRadius: DesignTokens.borderRadius.md,
+    ...DesignTokens.shadows.sm,
+  },
+  addButtonGradient: {
+    width: 36,
+    height: 36,
+    borderRadius: DesignTokens.borderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  
+  // Search
+  searchContainer: {
+    marginBottom: DesignTokens.spacing.md,
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.dark.surface,
+    borderRadius: DesignTokens.borderRadius.md,
+    paddingHorizontal: DesignTokens.spacing.md,
+    paddingVertical: DesignTokens.spacing.sm,
+    gap: DesignTokens.spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: DesignTokens.typography.sizes.base,
+    color: Colors.dark.text,
+    fontWeight: DesignTokens.typography.weights.medium,
+  },
+  
+  // Filters
+  filtersContainer: {
+    marginBottom: DesignTokens.spacing.md,
+  },
+  filtersContent: {
+    paddingRight: DesignTokens.spacing.xl,
+    gap: DesignTokens.spacing.sm,
+  },
+  filterPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.dark.surface,
+    paddingHorizontal: DesignTokens.spacing.md,
+    paddingVertical: DesignTokens.spacing.sm,
+    borderRadius: DesignTokens.borderRadius.full,
+    gap: DesignTokens.spacing.xs,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+  },
+  filterPillActive: {
     backgroundColor: Colors.dark.primary,
     borderColor: Colors.dark.primary,
   },
+  filterPillText: {
+    fontSize: DesignTokens.typography.sizes.sm,
+    fontWeight: DesignTokens.typography.weights.semibold,
+    color: Colors.dark.textSecondary,
+  },
+  filterPillTextActive: {
+    color: Colors.dark.background,
+  },
+  
+  // Stats
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 4,
   },
   sigilStats: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: DesignTokens.spacing.sm,
     backgroundColor: Colors.dark.surface,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: DesignTokens.spacing.md,
+    paddingVertical: DesignTokens.spacing.sm,
+    borderRadius: DesignTokens.borderRadius.full,
     borderWidth: 1,
     borderColor: Colors.dark.border,
   },
   sigilStatsIcon: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: Colors.dark.primary + '20',
+    width: 18,
+    height: 18,
+    borderRadius: DesignTokens.borderRadius.sm,
+    backgroundColor: Colors.dark.secondary + '20',
     alignItems: 'center',
     justifyContent: 'center',
   },
   sigilStatsText: {
-    fontSize: 12,
+    fontSize: DesignTokens.typography.sizes.xs,
     color: Colors.dark.textSecondary,
-    fontWeight: '700',
+    fontWeight: DesignTokens.typography.weights.semibold,
   },
   generateSigilsButton: {
-    borderRadius: 20,
-    marginTop: 16,
-    shadowColor: Colors.dark.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  generateSigilsGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 20,
-    gap: 8,
+    gap: DesignTokens.spacing.xs,
+    backgroundColor: Colors.dark.primary + '20',
+    paddingHorizontal: DesignTokens.spacing.md,
+    paddingVertical: DesignTokens.spacing.sm,
+    borderRadius: DesignTokens.borderRadius.full,
+    borderWidth: 1,
+    borderColor: Colors.dark.primary + '40',
   },
   generateSigilsText: {
-    fontSize: 13,
-    color: Colors.dark.background,
-    fontWeight: '700',
+    fontSize: DesignTokens.typography.sizes.xs,
+    color: Colors.dark.primary,
+    fontWeight: DesignTokens.typography.weights.semibold,
   },
+  
+  // Content
   listContent: {
-    padding: 20,
-    paddingTop: 8,
+    paddingHorizontal: DesignTokens.spacing.xl,
+    paddingTop: DesignTokens.spacing.lg,
+  },
+  emptyContainer: {
+    flex: 1,
+    paddingHorizontal: DesignTokens.spacing.xl,
   },
 });

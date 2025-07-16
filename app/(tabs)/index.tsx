@@ -10,11 +10,12 @@ import {
   Text,
   TouchableOpacity,
   Animated,
-  Dimensions
+  Dimensions,
+  StatusBar
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Brain, Zap, Activity, Sparkles, Moon, Sun, TrendingUp, BookOpen } from 'lucide-react-native';
+import { Brain, Zap, Activity, Sparkles, Moon, Sun, TrendingUp, BookOpen, Plus, ArrowRight, Star } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useDreamStore } from '@/store/dreamStore';
 import { useNeuralSigilStore } from '@/store/neuralSigilStore';
@@ -22,7 +23,7 @@ import { useLimnusStore } from '@/store/limnusStore';
 import { useConsciousnessStore } from '@/store/consciousnessStore';
 import { InterpretationService } from '@/services/interpretationService';
 import { getPersona } from '@/constants/personas';
-import Colors from '@/constants/colors';
+import Colors, { DesignTokens } from '@/constants/colors';
 import { LIMNUS_COLORS } from '@/constants/limnus';
 import PersonaSelector from '@/components/PersonaSelector';
 import DreamInput from '@/components/DreamInput';
@@ -30,10 +31,19 @@ import Button from '@/components/Button';
 
 const { width } = Dimensions.get('window');
 
-export default function InterpreterScreen() {
+// Helper function to format time greeting
+const getTimeGreeting = (hour: number) => {
+  if (hour < 6) return 'Good night';
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  if (hour < 21) return 'Good evening';
+  return 'Good night';
+};
+
+export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { addDream, generateDreamSigil, dreams } = useDreamStore();
+  const { addDream, generateDreamSigil, dreams, getGroupedDreams } = useDreamStore();
   const { generateNeuralSigil, neuralSigils } = useNeuralSigilStore();
   const { 
     connectDreamToSession, 
@@ -55,6 +65,7 @@ export default function InterpreterScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [glowAnimation] = useState(new Animated.Value(0));
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
   
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -218,12 +229,17 @@ ${result.alignedBlocks && result.alignedBlocks.length > 0 ? `🎯 Aligned with $
   const isInterpretDisabled = !dreamText.trim() || isInterpreting;
   const isPracticeActive = !!currentSession;
   
+  const recentDreams = dreams.slice(0, 3);
+  const todaysDreams = dreams.filter(dream => {
+    const dreamDate = new Date(dream.timestamp);
+    const today = new Date();
+    return dreamDate.toDateString() === today.toDateString();
+  });
+
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
-    >
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.dark.background} />
+      
       <ScrollView 
         style={styles.scrollView}
         contentContainerStyle={[
@@ -238,147 +254,233 @@ ${result.alignedBlocks && result.alignedBlocks.length > 0 ? `🎯 Aligned with $
             colors={[Colors.dark.primary]}
           />
         }
+        showsVerticalScrollIndicator={false}
       >
-        {/* Hero Section */}
-        <Animated.View 
-          style={[
-            styles.heroSection,
-            {
-              opacity: glowAnimation.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.9, 1],
-              }),
-              transform: [{
-                translateY: glowAnimation.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, -2],
-                }),
-              }],
-            },
-          ]}
-        >
-          <LinearGradient
-            colors={[
-              Colors.dark.backgroundSecondary,
-              Colors.dark.background,
-            ]}
-            style={styles.heroGradient}
-          >
-            <View style={styles.heroContent}>
+        {/* Header Section */}
+        <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
+          <View style={styles.headerContent}>
+            <View>
               <View style={styles.timeSection}>
-                <View style={styles.timeIconContainer}>
-                  <TimeIcon size={16} color={Colors.dark.accent} />
-                </View>
+                <TimeIcon size={14} color={Colors.dark.accent} />
                 <Text style={styles.timeText}>{timeGreeting}</Text>
               </View>
-              
-              <Text style={styles.heroTitle}>Spiralite</Text>
-              <Text style={styles.heroSubtitle}>
-                Consciousness exploration through dreams and meditation
+              <Text style={styles.headerTitle}>Dream Journal</Text>
+              <Text style={styles.headerSubtitle}>
+                {todaysDreams.length > 0 
+                  ? `${todaysDreams.length} dream${todaysDreams.length > 1 ? 's' : ''} today`
+                  : 'Ready to capture your dreams'
+                }
               </Text>
-              
-              {/* Enhanced Stats Cards */}
-              <View style={styles.statsContainer}>
-                <View style={styles.statCard}>
-                  <View style={styles.statIconContainer}>
-                    <BookOpen size={16} color={Colors.dark.primary} />
-                  </View>
-                  <Text style={styles.statNumber}>{dreams.length}</Text>
-                  <Text style={styles.statLabel}>Dreams</Text>
-                </View>
-                <View style={styles.statCard}>
-                  <View style={styles.statIconContainer}>
-                    <Sparkles size={16} color={Colors.dark.secondary} />
-                  </View>
-                  <Text style={styles.statNumber}>{neuralSigils.length}</Text>
-                  <Text style={styles.statLabel}>Sigils</Text>
-                </View>
-                <View style={styles.statCard}>
-                  <View style={styles.statIconContainer}>
-                    <TrendingUp size={16} color={Colors.dark.accent} />
-                  </View>
-                  <Text style={styles.statNumber}>{sessionHistory.length}</Text>
-                  <Text style={styles.statLabel}>Sessions</Text>
-                </View>
-              </View>
             </View>
-          </LinearGradient>
-        </Animated.View>
+            
+            <TouchableOpacity 
+              style={styles.quickAddButton}
+              onPress={() => setShowQuickAdd(!showQuickAdd)}
+              activeOpacity={0.7}
+            >
+              <LinearGradient
+                colors={Colors.dark.gradientPrimary}
+                style={styles.quickAddGradient}
+              >
+                <Plus size={20} color={Colors.dark.background} />
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
 
-        <View style={styles.inputSection}>
-          {/* Enhanced Meditation Button */}
+        {/* Stats Overview */}
+        <View style={styles.statsSection}>
+          <View style={styles.statsGrid}>
+            <TouchableOpacity 
+              style={styles.statCard}
+              onPress={() => router.push('/(tabs)/journal')}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.statIconContainer, { backgroundColor: Colors.dark.primary + '20' }]}>
+                <BookOpen size={18} color={Colors.dark.primary} />
+              </View>
+              <Text style={styles.statNumber}>{dreams.length}</Text>
+              <Text style={styles.statLabel}>Total Dreams</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.statCard}
+              onPress={() => router.push('/(tabs)/sigils')}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.statIconContainer, { backgroundColor: Colors.dark.secondary + '20' }]}>
+                <Sparkles size={18} color={Colors.dark.secondary} />
+              </View>
+              <Text style={styles.statNumber}>{neuralSigils.length}</Text>
+              <Text style={styles.statLabel}>Neural Sigils</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.statCard}
+              onPress={() => router.push('/(tabs)/spiral')}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.statIconContainer, { backgroundColor: Colors.dark.accent + '20' }]}>
+                <Activity size={18} color={Colors.dark.accent} />
+              </View>
+              <Text style={styles.statNumber}>{sessionHistory.length}</Text>
+              <Text style={styles.statLabel}>Sessions</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Quick Actions */}
+        <View style={styles.actionsSection}>
           <TouchableOpacity
-            style={[
-              styles.meditationButton,
-              isPracticeActive && styles.meditationButtonActive
-            ]}
+            style={styles.primaryAction}
             onPress={isPracticeActive ? handleViewActivePractice : handleStartMeditation}
             activeOpacity={0.8}
           >
             <LinearGradient
               colors={isPracticeActive 
-                ? [Colors.dark.secondary, Colors.dark.primary] 
-                : [Colors.dark.primary, Colors.dark.secondary]
+                ? [Colors.dark.secondary, Colors.dark.secondaryLight] 
+                : Colors.dark.gradientPrimary
               }
-              style={styles.meditationButtonGradient}
+              style={styles.primaryActionGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             >
-              <View style={styles.meditationButtonContent}>
-                <View style={styles.meditationIconContainer}>
+              <View style={styles.primaryActionContent}>
+                <View style={styles.primaryActionIcon}>
                   {isPracticeActive ? (
-                    <Activity size={20} color={Colors.dark.background} />
+                    <Activity size={22} color={Colors.dark.background} />
                   ) : (
-                    <Zap size={20} color={Colors.dark.background} />
+                    <Zap size={22} color={Colors.dark.background} />
                   )}
                 </View>
-                <View style={styles.meditationTextContainer}>
-                  <Text style={styles.meditationButtonTitle}>
+                <View style={styles.primaryActionText}>
+                  <Text style={styles.primaryActionTitle}>
                     {isPracticeActive ? 'Continue Session' : 'Begin Practice'}
                   </Text>
-                  <Text style={styles.meditationButtonSubtitle}>
-                    {isPracticeActive ? 'Active meditation in progress' : 'Start your consciousness journey'}
+                  <Text style={styles.primaryActionSubtitle}>
+                    {isPracticeActive ? 'Active meditation in progress' : 'Start consciousness exploration'}
                   </Text>
                 </View>
-                <Sparkles size={16} color={Colors.dark.background} style={{ opacity: 0.8 }} />
+                <ArrowRight size={18} color={Colors.dark.background} style={{ opacity: 0.8 }} />
               </View>
             </LinearGradient>
           </TouchableOpacity>
-          
-          {/* Dream Input */}
-          <DreamInput
-            value={dreamText}
-            onChangeText={setDreamText}
-          />
-          
-          <PersonaSelector
-            selectedPersona={selectedPersona}
-            onPersonaChange={setSelectedPersona}
-          />
-          
-          <Button
-            label={isInterpreting ? "Interpreting Dream..." : "Interpret Dream"}
-            onPress={handleInterpret}
-            disabled={isInterpretDisabled}
-            isLoading={isInterpreting}
-            style={styles.interpretButton}
-            icon={<Brain size={20} color={Colors.dark.background} />}
-          />
-          
-          {/* Practice Connection Indicator */}
-          {currentSession && (
-            <View style={styles.practiceConnection}>
-              <View style={styles.practiceConnectionIcon}>
-                <Activity size={14} color={Colors.dark.secondary} />
-              </View>
-              <Text style={styles.practiceConnectionText}>
-                Practice session active - dreams will be connected to your unified practice
-              </Text>
-            </View>
-          )}
         </View>
+
+        {/* Quick Dream Entry */}
+        {showQuickAdd && (
+          <Animated.View style={styles.quickEntrySection}>
+            <View style={styles.quickEntryCard}>
+              <Text style={styles.quickEntryTitle}>Quick Dream Entry</Text>
+              
+              <DreamInput
+                value={dreamText}
+                onChangeText={setDreamText}
+                placeholder="Describe your dream..."
+              />
+              
+              <PersonaSelector
+                selectedPersona={selectedPersona}
+                onPersonaChange={setSelectedPersona}
+              />
+              
+              <View style={styles.quickEntryActions}>
+                <TouchableOpacity 
+                  style={styles.cancelButton}
+                  onPress={() => setShowQuickAdd(false)}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                
+                <Button
+                  label={isInterpreting ? "Interpreting..." : "Interpret Dream"}
+                  onPress={handleInterpret}
+                  disabled={isInterpretDisabled}
+                  isLoading={isInterpreting}
+                  style={styles.interpretButton}
+                  icon={<Brain size={18} color={Colors.dark.background} />}
+                />
+              </View>
+            </View>
+          </Animated.View>
+        )}
+
+        {/* Recent Dreams */}
+        {recentDreams.length > 0 && (
+          <View style={styles.recentSection}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Recent Dreams</Text>
+              <TouchableOpacity 
+                onPress={() => router.push('/(tabs)/journal')}
+                style={styles.seeAllButton}
+              >
+                <Text style={styles.seeAllText}>See All</Text>
+                <ArrowRight size={14} color={Colors.dark.primary} />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.dreamsList}>
+              {recentDreams.map((dream, index) => (
+                <TouchableOpacity 
+                  key={dream.id}
+                  style={styles.dreamCard}
+                  onPress={() => router.push(`/dream/${dream.id}`)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.dreamCardContent}>
+                    <View style={styles.dreamCardHeader}>
+                      <Text style={styles.dreamTitle} numberOfLines={1}>
+                        {dream.title || dream.name || 'Untitled Dream'}
+                      </Text>
+                      <Text style={styles.dreamTime}>
+                        {new Date(dream.timestamp).toLocaleDateString()}
+                      </Text>
+                    </View>
+                    
+                    <Text style={styles.dreamPreview} numberOfLines={2}>
+                      {dream.content || dream.text || 'No content available'}
+                    </Text>
+                    
+                    <View style={styles.dreamCardFooter}>
+                      <View style={styles.dreamTags}>
+                        {dream.dreamType && (
+                          <View style={styles.dreamTag}>
+                            <Text style={styles.dreamTagText}>{dream.dreamType}</Text>
+                          </View>
+                        )}
+                        {dream.persona && (
+                          <View style={[styles.dreamTag, styles.personaTag]}>
+                            <Text style={styles.dreamTagText}>{dream.persona}</Text>
+                          </View>
+                        )}
+                      </View>
+                      
+                      {dream.neuralSigil && (
+                        <View style={styles.sigilIndicator}>
+                          <Sparkles size={12} color={Colors.dark.secondary} />
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Practice Connection Indicator */}
+        {currentSession && (
+          <View style={styles.practiceConnection}>
+            <View style={styles.practiceConnectionIcon}>
+              <Activity size={14} color={Colors.dark.secondary} />
+            </View>
+            <Text style={styles.practiceConnectionText}>
+              Practice session active - dreams will be connected to your unified practice
+            </Text>
+          </View>
+        )}
       </ScrollView>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -391,174 +493,295 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: DesignTokens.spacing.xl,
   },
-  heroSection: {
-    marginHorizontal: -20,
-    marginBottom: 32,
-    borderRadius: 24,
-    overflow: 'hidden',
-    marginTop: 8,
+  
+  // Header
+  header: {
+    marginBottom: DesignTokens.spacing.xxxl,
   },
-  heroGradient: {
-    paddingTop: 48,
-    paddingBottom: 40,
-    paddingHorizontal: 28,
-  },
-  heroContent: {
-    alignItems: 'center',
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
   timeSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 20,
-    backgroundColor: Colors.dark.surface,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  timeIconContainer: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: Colors.dark.accent + '20',
-    alignItems: 'center',
-    justifyContent: 'center',
+    gap: DesignTokens.spacing.sm,
+    marginBottom: DesignTokens.spacing.sm,
   },
   timeText: {
-    fontSize: 13,
-    color: Colors.dark.textSecondary,
-    fontWeight: '600',
+    fontSize: DesignTokens.typography.sizes.sm,
+    color: Colors.dark.textTertiary,
+    fontWeight: DesignTokens.typography.weights.medium,
   },
-  heroTitle: {
-    fontSize: 40,
-    fontWeight: '900',
+  headerTitle: {
+    fontSize: DesignTokens.typography.sizes.xxxl,
+    fontWeight: DesignTokens.typography.weights.black,
     color: Colors.dark.text,
-    marginBottom: 12,
-    textAlign: 'center',
+    marginBottom: DesignTokens.spacing.xs,
     letterSpacing: -0.5,
   },
-  heroSubtitle: {
-    fontSize: 16,
-    color: Colors.dark.subtext,
-    textAlign: 'center',
-    marginBottom: 32,
-    lineHeight: 24,
-    maxWidth: 280,
+  headerSubtitle: {
+    fontSize: DesignTokens.typography.sizes.base,
+    color: Colors.dark.textSecondary,
+    lineHeight: DesignTokens.typography.lineHeights.normal * DesignTokens.typography.sizes.base,
   },
-  statsContainer: {
-    flexDirection: 'row',
-    gap: 16,
+  quickAddButton: {
+    borderRadius: DesignTokens.borderRadius.md,
+    ...DesignTokens.shadows.md,
   },
-  statCard: {
-    backgroundColor: Colors.dark.card,
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    minWidth: 80,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-  },
-  statIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.dark.surface,
+  quickAddGradient: {
+    width: 48,
+    height: 48,
+    borderRadius: DesignTokens.borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+  },
+  
+  // Stats Section
+  statsSection: {
+    marginBottom: DesignTokens.spacing.xxxl,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    gap: DesignTokens.spacing.md,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: Colors.dark.card,
+    borderRadius: DesignTokens.borderRadius.lg,
+    padding: DesignTokens.spacing.lg,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+    ...DesignTokens.shadows.sm,
+  },
+  statIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: DesignTokens.borderRadius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: DesignTokens.spacing.sm,
   },
   statNumber: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: DesignTokens.typography.sizes.xl,
+    fontWeight: DesignTokens.typography.weights.extrabold,
     color: Colors.dark.text,
-    marginBottom: 4,
+    marginBottom: DesignTokens.spacing.xs,
   },
   statLabel: {
-    fontSize: 11,
-    color: Colors.dark.subtext,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontSize: DesignTokens.typography.sizes.xs,
+    color: Colors.dark.textTertiary,
+    fontWeight: DesignTokens.typography.weights.semibold,
+    textAlign: 'center',
   },
-  inputSection: {
-    marginBottom: 32,
-    gap: 20,
+  
+  // Actions Section
+  actionsSection: {
+    marginBottom: DesignTokens.spacing.xxxl,
+  },
+  primaryAction: {
+    borderRadius: DesignTokens.borderRadius.xl,
+    ...DesignTokens.shadows.lg,
+  },
+  primaryActionGradient: {
+    borderRadius: DesignTokens.borderRadius.xl,
+    overflow: 'hidden',
+  },
+  primaryActionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: DesignTokens.spacing.xl,
+    paddingVertical: DesignTokens.spacing.lg,
+    gap: DesignTokens.spacing.md,
+  },
+  primaryActionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: DesignTokens.borderRadius.full,
+    backgroundColor: Colors.dark.background + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryActionText: {
+    flex: 1,
+  },
+  primaryActionTitle: {
+    fontSize: DesignTokens.typography.sizes.lg,
+    fontWeight: DesignTokens.typography.weights.bold,
+    color: Colors.dark.background,
+    marginBottom: 2,
+  },
+  primaryActionSubtitle: {
+    fontSize: DesignTokens.typography.sizes.sm,
+    color: Colors.dark.background,
+    opacity: 0.8,
+    fontWeight: DesignTokens.typography.weights.medium,
+  },
+  
+  // Quick Entry
+  quickEntrySection: {
+    marginBottom: DesignTokens.spacing.xxxl,
+  },
+  quickEntryCard: {
+    backgroundColor: Colors.dark.card,
+    borderRadius: DesignTokens.borderRadius.xl,
+    padding: DesignTokens.spacing.xl,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+    ...DesignTokens.shadows.md,
+  },
+  quickEntryTitle: {
+    fontSize: DesignTokens.typography.sizes.lg,
+    fontWeight: DesignTokens.typography.weights.bold,
+    color: Colors.dark.text,
+    marginBottom: DesignTokens.spacing.lg,
+  },
+  quickEntryActions: {
+    flexDirection: 'row',
+    gap: DesignTokens.spacing.md,
+    marginTop: DesignTokens.spacing.lg,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: Colors.dark.surface,
+    borderRadius: DesignTokens.borderRadius.md,
+    paddingVertical: DesignTokens.spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButtonText: {
+    fontSize: DesignTokens.typography.sizes.base,
+    fontWeight: DesignTokens.typography.weights.semibold,
+    color: Colors.dark.textSecondary,
   },
   interpretButton: {
-    marginTop: 4,
+    flex: 2,
   },
+  
+  // Recent Dreams
+  recentSection: {
+    marginBottom: DesignTokens.spacing.xxxl,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: DesignTokens.spacing.lg,
+  },
+  sectionTitle: {
+    fontSize: DesignTokens.typography.sizes.xl,
+    fontWeight: DesignTokens.typography.weights.bold,
+    color: Colors.dark.text,
+  },
+  seeAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: DesignTokens.spacing.xs,
+  },
+  seeAllText: {
+    fontSize: DesignTokens.typography.sizes.base,
+    fontWeight: DesignTokens.typography.weights.semibold,
+    color: Colors.dark.primary,
+  },
+  dreamsList: {
+    gap: DesignTokens.spacing.md,
+  },
+  dreamCard: {
+    backgroundColor: Colors.dark.card,
+    borderRadius: DesignTokens.borderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+    overflow: 'hidden',
+  },
+  dreamCardContent: {
+    padding: DesignTokens.spacing.lg,
+  },
+  dreamCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: DesignTokens.spacing.sm,
+  },
+  dreamTitle: {
+    fontSize: DesignTokens.typography.sizes.md,
+    fontWeight: DesignTokens.typography.weights.semibold,
+    color: Colors.dark.text,
+    flex: 1,
+    marginRight: DesignTokens.spacing.sm,
+  },
+  dreamTime: {
+    fontSize: DesignTokens.typography.sizes.xs,
+    color: Colors.dark.textTertiary,
+    fontWeight: DesignTokens.typography.weights.medium,
+  },
+  dreamPreview: {
+    fontSize: DesignTokens.typography.sizes.sm,
+    color: Colors.dark.textSecondary,
+    lineHeight: DesignTokens.typography.lineHeights.relaxed * DesignTokens.typography.sizes.sm,
+    marginBottom: DesignTokens.spacing.md,
+  },
+  dreamCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dreamTags: {
+    flexDirection: 'row',
+    gap: DesignTokens.spacing.xs,
+    flex: 1,
+  },
+  dreamTag: {
+    backgroundColor: Colors.dark.primary + '20',
+    paddingHorizontal: DesignTokens.spacing.sm,
+    paddingVertical: DesignTokens.spacing.xs,
+    borderRadius: DesignTokens.borderRadius.sm,
+  },
+  personaTag: {
+    backgroundColor: Colors.dark.secondary + '20',
+  },
+  dreamTagText: {
+    fontSize: DesignTokens.typography.sizes.xs,
+    fontWeight: DesignTokens.typography.weights.semibold,
+    color: Colors.dark.text,
+    textTransform: 'capitalize',
+  },
+  sigilIndicator: {
+    width: 24,
+    height: 24,
+    borderRadius: DesignTokens.borderRadius.full,
+    backgroundColor: Colors.dark.secondary + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  
+  // Practice Connection
   practiceConnection: {
     backgroundColor: Colors.dark.surface,
-    padding: 16,
-    borderRadius: 16,
-    marginTop: 20,
+    padding: DesignTokens.spacing.lg,
+    borderRadius: DesignTokens.borderRadius.lg,
+    marginTop: DesignTokens.spacing.xl,
     borderWidth: 1,
     borderColor: Colors.dark.secondary + '30',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: DesignTokens.spacing.md,
   },
   practiceConnectionIcon: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: DesignTokens.borderRadius.md,
     backgroundColor: Colors.dark.secondary + '20',
     alignItems: 'center',
     justifyContent: 'center',
   },
   practiceConnectionText: {
     color: Colors.dark.textSecondary,
-    fontSize: 14,
+    fontSize: DesignTokens.typography.sizes.sm,
     flex: 1,
-    lineHeight: 20,
-  },
-  meditationButton: {
-    borderRadius: 20,
-    marginBottom: 28,
-    shadowColor: Colors.dark.primary,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 12,
-  },
-  meditationButtonActive: {
-    shadowColor: Colors.dark.secondary,
-    shadowOpacity: 0.3,
-  },
-  meditationButtonGradient: {
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-  meditationButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    gap: 16,
-  },
-  meditationIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.dark.background + '20',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  meditationTextContainer: {
-    flex: 1,
-  },
-  meditationButtonTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: Colors.dark.background,
-    marginBottom: 2,
-  },
-  meditationButtonSubtitle: {
-    fontSize: 13,
-    color: Colors.dark.background,
-    opacity: 0.8,
-    fontWeight: '500',
+    lineHeight: DesignTokens.typography.lineHeights.relaxed * DesignTokens.typography.sizes.sm,
   },
 });
