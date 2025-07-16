@@ -219,7 +219,7 @@ export default function JournalScreen() {
               activeOpacity={0.7}
             >
               <LinearGradient
-                colors={Colors.dark.gradientPrimary as readonly [string, string, ...string[]]}
+                colors={Colors.dark.gradientPrimary as [string, string, ...string[]]}
                 style={styles.addButtonGradient}
               >
                 <Plus size={16} color={Colors.dark.background} />
@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: DesignTokens.typography.sizes.xxxl,
-    fontWeight: DesignTokens.typography.weights.black as any,
+    fontWeight: '900' as any,
     color: Colors.dark.text,
     marginBottom: DesignTokens.spacing.xs,
     letterSpacing: -0.5,
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: DesignTokens.typography.sizes.base,
     color: Colors.dark.textSecondary,
-    fontWeight: DesignTokens.typography.weights.medium as any,
+    fontWeight: '500' as any,
   },
   headerActions: {
     flexDirection: 'row',
@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: DesignTokens.typography.sizes.base,
     color: Colors.dark.text,
-    fontWeight: DesignTokens.typography.weights.medium as any,
+    fontWeight: '500' as any,
   },
   
   // Filters
@@ -479,7 +479,7 @@ const styles = StyleSheet.create({
   },
   filterPillText: {
     fontSize: DesignTokens.typography.sizes.sm,
-    fontWeight: DesignTokens.typography.weights.semibold as any,
+    fontWeight: '600' as any,
     color: Colors.dark.textSecondary,
   },
   filterPillTextActive: {
@@ -514,7 +514,7 @@ const styles = StyleSheet.create({
   sigilStatsText: {
     fontSize: DesignTokens.typography.sizes.xs,
     color: Colors.dark.textSecondary,
-    fontWeight: DesignTokens.typography.weights.semibold as any,
+    fontWeight: '600' as any,
   },
   generateSigilsButton: {
     flexDirection: 'row',
@@ -530,7 +530,7 @@ const styles = StyleSheet.create({
   generateSigilsText: {
     fontSize: DesignTokens.typography.sizes.xs,
     color: Colors.dark.primary,
-    fontWeight: DesignTokens.typography.weights.semibold as any,
+    fontWeight: '600' as any,
   },
   
   // Content

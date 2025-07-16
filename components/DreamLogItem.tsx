@@ -15,9 +15,10 @@ interface DreamLogItemProps {
   showGroupHeader?: boolean;
   groupTitle?: string;
   showSigilView?: boolean;
+  onPress?: () => void;
 }
 
-export default function DreamLogItem({ dream, showGroupHeader, groupTitle, showSigilView = false }: DreamLogItemProps) {
+export default function DreamLogItem({ dream, showGroupHeader, groupTitle, showSigilView = false, onPress }: DreamLogItemProps) {
   const router = useRouter();
   const { getDreamSigil, generateDreamSigil, findSimilarDreams } = useDreamStore();
   const { findSimilarBySigil } = useNeuralSigilStore();
@@ -78,7 +79,11 @@ export default function DreamLogItem({ dream, showGroupHeader, groupTitle, showS
   };
   
   const handlePress = () => {
-    router.push(`/dream/${dream.id}`);
+    if (onPress) {
+      onPress();
+    } else {
+      router.push(`/dream/${dream.id}`);
+    }
   };
   
   return (

@@ -279,7 +279,7 @@ ${result.alignedBlocks && result.alignedBlocks.length > 0 ? `🎯 Aligned with $
               activeOpacity={0.7}
             >
               <LinearGradient
-                colors={Colors.dark.gradientPrimary as readonly [string, string, ...string[]]}
+                colors={Colors.dark.gradientPrimary as [string, string, ...string[]]}
                 style={styles.quickAddGradient}
               >
                 <Plus size={20} color={Colors.dark.background} />
@@ -338,8 +338,8 @@ ${result.alignedBlocks && result.alignedBlocks.length > 0 ? `🎯 Aligned with $
           >
             <LinearGradient
               colors={isPracticeActive 
-                ? [Colors.dark.secondary, Colors.dark.secondaryLight] as readonly [string, string, ...string[]]
-                : Colors.dark.gradientPrimary as readonly [string, string, ...string[]]
+                ? [Colors.dark.secondary, Colors.dark.secondaryLight] as [string, string, ...string[]]
+                : Colors.dark.gradientPrimary as [string, string, ...string[]]
               }
               style={styles.primaryActionGradient}
               start={{ x: 0, y: 0 }}
