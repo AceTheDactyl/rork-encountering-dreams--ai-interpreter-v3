@@ -1,7 +1,7 @@
-import { SortOption } from '@/store/dreamStore';
+import { SortBy } from '@/store/dreamStore';
 
 export interface SortOptionConfig {
-  id: SortOption;
+  id: SortBy;
   label: string;
   description: string;
   icon: string;
@@ -52,6 +52,6 @@ export const sortOptions: SortOptionConfig[] = [
   }
 ];
 
-export const getSortOption = (id: SortOption): SortOptionConfig | undefined => {
+export const getSortOption = (id: SortBy): SortOptionConfig | undefined => {
   return sortOptions.find(option => option.id === id);
 };

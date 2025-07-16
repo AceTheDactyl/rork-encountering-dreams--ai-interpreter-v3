@@ -279,7 +279,7 @@ ${result.alignedBlocks && result.alignedBlocks.length > 0 ? `🎯 Aligned with $
               activeOpacity={0.7}
             >
               <LinearGradient
-                colors={Colors.dark.gradientPrimary}
+                colors={Colors.dark.gradientPrimary as readonly [string, string, ...string[]]}
                 style={styles.quickAddGradient}
               >
                 <Plus size={20} color={Colors.dark.background} />
@@ -338,8 +338,8 @@ ${result.alignedBlocks && result.alignedBlocks.length > 0 ? `🎯 Aligned with $
           >
             <LinearGradient
               colors={isPracticeActive 
-                ? [Colors.dark.secondary, Colors.dark.secondaryLight] 
-                : Colors.dark.gradientPrimary
+                ? [Colors.dark.secondary, Colors.dark.secondaryLight] as readonly [string, string, ...string[]]
+                : Colors.dark.gradientPrimary as readonly [string, string, ...string[]]
               }
               style={styles.primaryActionGradient}
               start={{ x: 0, y: 0 }}
@@ -514,11 +514,11 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: DesignTokens.typography.sizes.sm,
     color: Colors.dark.textTertiary,
-    fontWeight: DesignTokens.typography.weights.medium,
+    fontWeight: DesignTokens.typography.weights.medium as any,
   },
   headerTitle: {
     fontSize: DesignTokens.typography.sizes.xxxl,
-    fontWeight: DesignTokens.typography.weights.black,
+    fontWeight: DesignTokens.typography.weights.black as any,
     color: Colors.dark.text,
     marginBottom: DesignTokens.spacing.xs,
     letterSpacing: -0.5,
@@ -568,14 +568,14 @@ const styles = StyleSheet.create({
   },
   statNumber: {
     fontSize: DesignTokens.typography.sizes.xl,
-    fontWeight: DesignTokens.typography.weights.extrabold,
+    fontWeight: DesignTokens.typography.weights.extrabold as any,
     color: Colors.dark.text,
     marginBottom: DesignTokens.spacing.xs,
   },
   statLabel: {
     fontSize: DesignTokens.typography.sizes.xs,
     color: Colors.dark.textTertiary,
-    fontWeight: DesignTokens.typography.weights.semibold,
+    fontWeight: DesignTokens.typography.weights.semibold as any,
     textAlign: 'center',
   },
   
@@ -611,7 +611,7 @@ const styles = StyleSheet.create({
   },
   primaryActionTitle: {
     fontSize: DesignTokens.typography.sizes.lg,
-    fontWeight: DesignTokens.typography.weights.bold,
+    fontWeight: DesignTokens.typography.weights.bold as any,
     color: Colors.dark.background,
     marginBottom: 2,
   },
@@ -619,7 +619,7 @@ const styles = StyleSheet.create({
     fontSize: DesignTokens.typography.sizes.sm,
     color: Colors.dark.background,
     opacity: 0.8,
-    fontWeight: DesignTokens.typography.weights.medium,
+    fontWeight: DesignTokens.typography.weights.medium as any,
   },
   
   // Quick Entry
@@ -636,7 +636,7 @@ const styles = StyleSheet.create({
   },
   quickEntryTitle: {
     fontSize: DesignTokens.typography.sizes.lg,
-    fontWeight: DesignTokens.typography.weights.bold,
+    fontWeight: DesignTokens.typography.weights.bold as any,
     color: Colors.dark.text,
     marginBottom: DesignTokens.spacing.lg,
   },
@@ -655,7 +655,7 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: DesignTokens.typography.sizes.base,
-    fontWeight: DesignTokens.typography.weights.semibold,
+    fontWeight: DesignTokens.typography.weights.semibold as any,
     color: Colors.dark.textSecondary,
   },
   interpretButton: {
@@ -674,7 +674,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: DesignTokens.typography.sizes.xl,
-    fontWeight: DesignTokens.typography.weights.bold,
+    fontWeight: DesignTokens.typography.weights.bold as any,
     color: Colors.dark.text,
   },
   seeAllButton: {
@@ -684,7 +684,7 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     fontSize: DesignTokens.typography.sizes.base,
-    fontWeight: DesignTokens.typography.weights.semibold,
+    fontWeight: DesignTokens.typography.weights.semibold as any,
     color: Colors.dark.primary,
   },
   dreamsList: {
@@ -708,7 +708,7 @@ const styles = StyleSheet.create({
   },
   dreamTitle: {
     fontSize: DesignTokens.typography.sizes.md,
-    fontWeight: DesignTokens.typography.weights.semibold,
+    fontWeight: DesignTokens.typography.weights.semibold as any,
     color: Colors.dark.text,
     flex: 1,
     marginRight: DesignTokens.spacing.sm,
@@ -716,7 +716,7 @@ const styles = StyleSheet.create({
   dreamTime: {
     fontSize: DesignTokens.typography.sizes.xs,
     color: Colors.dark.textTertiary,
-    fontWeight: DesignTokens.typography.weights.medium,
+    fontWeight: DesignTokens.typography.weights.medium as any,
   },
   dreamPreview: {
     fontSize: DesignTokens.typography.sizes.sm,
@@ -745,7 +745,7 @@ const styles = StyleSheet.create({
   },
   dreamTagText: {
     fontSize: DesignTokens.typography.sizes.xs,
-    fontWeight: DesignTokens.typography.weights.semibold,
+    fontWeight: DesignTokens.typography.weights.semibold as any,
     color: Colors.dark.text,
     textTransform: 'capitalize',
   },

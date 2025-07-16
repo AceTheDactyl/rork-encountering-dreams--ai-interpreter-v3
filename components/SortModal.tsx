@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View, Modal, Pressable, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X } from 'lucide-react-native';
-import { SortOption, useDreamStore } from '@/store/dreamStore';
+import { SortBy, useDreamStore } from '@/store/dreamStore';
 import { sortOptions, getSortOption } from '@/constants/sortOptions';
 import Colors from '@/constants/colors';
 
@@ -16,7 +16,7 @@ export default function SortModal({ visible, onClose }: SortModalProps) {
   const { sortBy, setSortBy } = useDreamStore();
   const currentSort = getSortOption(sortBy);
   
-  const handleSortSelect = (option: SortOption) => {
+  const handleSortSelect = (option: SortBy) => {
     setSortBy(option);
     onClose();
   };

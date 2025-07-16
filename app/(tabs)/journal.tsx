@@ -210,7 +210,6 @@ export default function JournalScreen() {
             </TouchableOpacity>
             
             <SortButton
-              currentSort={sortBy}
               onPress={() => setSortModalVisible(true)}
             />
             
@@ -220,7 +219,7 @@ export default function JournalScreen() {
               activeOpacity={0.7}
             >
               <LinearGradient
-                colors={Colors.dark.gradientPrimary}
+                colors={Colors.dark.gradientPrimary as readonly [string, string, ...string[]]}
                 style={styles.addButtonGradient}
               >
                 <Plus size={16} color={Colors.dark.background} />
@@ -313,7 +312,15 @@ export default function JournalScreen() {
           data={flattenedData}
           renderItem={({ item }) => (
             <DreamLogItem 
-              dream={item} 
+              dream={{
+                ...item,
+                name: item.name || item.title || 'Untitled Dream',
+                text: item.text || item.content || '',
+                date: item.date || new Date(item.timestamp).toISOString(),
+                persona: (item.persona as 'orion' | 'limnus') || 'limnus',
+                interpretation: item.interpretation || '',
+                dreamType: item.dreamType || 'unknown'
+              }} 
               showGroupHeader={item.showGroupHeader}
               groupTitle={item.groupTitle}
               showSigilView={showSigilView}
@@ -353,11 +360,6 @@ export default function JournalScreen() {
       
       <SortModal
         visible={sortModalVisible}
-        currentSort={sortBy}
-        onSort={(newSort) => {
-          // Handle sort logic here if needed
-          setSortModalVisible(false);
-        }}
         onClose={() => setSortModalVisible(false)}
       />
     </View>
@@ -389,7 +391,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: DesignTokens.typography.sizes.xxxl,
-    fontWeight: DesignTokens.typography.weights.black,
+    fontWeight: DesignTokens.typography.weights.black as any,
     color: Colors.dark.text,
     marginBottom: DesignTokens.spacing.xs,
     letterSpacing: -0.5,
@@ -397,7 +399,7 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: DesignTokens.typography.sizes.base,
     color: Colors.dark.textSecondary,
-    fontWeight: DesignTokens.typography.weights.medium,
+    fontWeight: DesignTokens.typography.weights.medium as any,
   },
   headerActions: {
     flexDirection: 'row',
@@ -449,7 +451,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: DesignTokens.typography.sizes.base,
     color: Colors.dark.text,
-    fontWeight: DesignTokens.typography.weights.medium,
+    fontWeight: DesignTokens.typography.weights.medium as any,
   },
   
   // Filters
@@ -477,7 +479,7 @@ const styles = StyleSheet.create({
   },
   filterPillText: {
     fontSize: DesignTokens.typography.sizes.sm,
-    fontWeight: DesignTokens.typography.weights.semibold,
+    fontWeight: DesignTokens.typography.weights.semibold as any,
     color: Colors.dark.textSecondary,
   },
   filterPillTextActive: {
@@ -512,7 +514,7 @@ const styles = StyleSheet.create({
   sigilStatsText: {
     fontSize: DesignTokens.typography.sizes.xs,
     color: Colors.dark.textSecondary,
-    fontWeight: DesignTokens.typography.weights.semibold,
+    fontWeight: DesignTokens.typography.weights.semibold as any,
   },
   generateSigilsButton: {
     flexDirection: 'row',
@@ -528,7 +530,7 @@ const styles = StyleSheet.create({
   generateSigilsText: {
     fontSize: DesignTokens.typography.sizes.xs,
     color: Colors.dark.primary,
-    fontWeight: DesignTokens.typography.weights.semibold,
+    fontWeight: DesignTokens.typography.weights.semibold as any,
   },
   
   // Content
