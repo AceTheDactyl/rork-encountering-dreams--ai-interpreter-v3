@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, Pressable, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Shield, Link, Anchor, Brain, Hexagon, Zap } from 'lucide-react-native';
-import { Dream } from '@/types/dream';
+import { Dream } from '@/store/dreamStore';
 import { getPersona } from '@/constants/personas';
 import { getDreamType } from '@/constants/dreamTypes';
 import { useDreamStore } from '@/store/dreamStore';

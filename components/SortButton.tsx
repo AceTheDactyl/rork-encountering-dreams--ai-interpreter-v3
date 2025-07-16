@@ -7,6 +7,7 @@ import Colors from '@/constants/colors';
 
 interface SortButtonProps {
   onPress: () => void;
+  currentSort?: any;
 }
 
 export default function SortButton({ onPress }: SortButtonProps) {

@@ -279,7 +279,7 @@ ${result.alignedBlocks && result.alignedBlocks.length > 0 ? `🎯 Aligned with $
               activeOpacity={0.7}
             >
               <LinearGradient
-                colors={Colors.dark.gradientPrimary as [string, string, ...string[]]}
+                colors={Colors.dark.gradientPrimary.length >= 2 ? Colors.dark.gradientPrimary as [string, string, ...string[]] : ['#6366f1', '#8b5cf6']}
                 style={styles.quickAddGradient}
               >
                 <Plus size={20} color={Colors.dark.background} />
@@ -338,8 +338,8 @@ ${result.alignedBlocks && result.alignedBlocks.length > 0 ? `🎯 Aligned with $
           >
             <LinearGradient
               colors={isPracticeActive 
-                ? [Colors.dark.secondary, Colors.dark.secondaryLight] as [string, string, ...string[]]
-                : Colors.dark.gradientPrimary as [string, string, ...string[]]
+                ? ([Colors.dark.secondary, Colors.dark.secondaryLight].length >= 2 ? [Colors.dark.secondary, Colors.dark.secondaryLight] as [string, string, ...string[]] : ['#10b981', '#34d399'])
+                : (Colors.dark.gradientPrimary.length >= 2 ? Colors.dark.gradientPrimary as [string, string, ...string[]] : ['#6366f1', '#8b5cf6'])
               }
               style={styles.primaryActionGradient}
               start={{ x: 0, y: 0 }}

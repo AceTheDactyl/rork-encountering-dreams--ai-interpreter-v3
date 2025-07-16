@@ -9,6 +9,8 @@ import Colors from '@/constants/colors';
 interface SortModalProps {
   visible: boolean;
   onClose: () => void;
+  currentSort?: any;
+  onSort?: (newSort: any) => void;
 }
 
 export default function SortModal({ visible, onClose }: SortModalProps) {

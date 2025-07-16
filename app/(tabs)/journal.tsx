@@ -210,6 +210,7 @@ export default function JournalScreen() {
             </TouchableOpacity>
             
             <SortButton
+              currentSort={sortBy}
               onPress={() => setSortModalVisible(true)}
             />
             
@@ -219,7 +220,7 @@ export default function JournalScreen() {
               activeOpacity={0.7}
             >
               <LinearGradient
-                colors={Colors.dark.gradientPrimary as [string, string, ...string[]]}
+                colors={Colors.dark.gradientPrimary.length >= 2 ? Colors.dark.gradientPrimary as [string, string, ...string[]] : ['#6366f1', '#8b5cf6']}
                 style={styles.addButtonGradient}
               >
                 <Plus size={16} color={Colors.dark.background} />
@@ -360,6 +361,10 @@ export default function JournalScreen() {
       
       <SortModal
         visible={sortModalVisible}
+        currentSort={sortBy}
+        onSort={(newSort) => {
+          // Handle sort change if needed
+        }}
         onClose={() => setSortModalVisible(false)}
       />
     </View>
@@ -391,7 +396,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: DesignTokens.typography.sizes.xxxl,
-    fontWeight: '900' as any,
+    fontWeight: '900',
     color: Colors.dark.text,
     marginBottom: DesignTokens.spacing.xs,
     letterSpacing: -0.5,
@@ -399,7 +404,7 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: DesignTokens.typography.sizes.base,
     color: Colors.dark.textSecondary,
-    fontWeight: '500' as any,
+    fontWeight: '500',
   },
   headerActions: {
     flexDirection: 'row',
@@ -451,7 +456,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: DesignTokens.typography.sizes.base,
     color: Colors.dark.text,
-    fontWeight: '500' as any,
+    fontWeight: '500',
   },
   
   // Filters
@@ -479,7 +484,7 @@ const styles = StyleSheet.create({
   },
   filterPillText: {
     fontSize: DesignTokens.typography.sizes.sm,
-    fontWeight: '600' as any,
+    fontWeight: '600',
     color: Colors.dark.textSecondary,
   },
   filterPillTextActive: {
@@ -514,7 +519,7 @@ const styles = StyleSheet.create({
   sigilStatsText: {
     fontSize: DesignTokens.typography.sizes.xs,
     color: Colors.dark.textSecondary,
-    fontWeight: '600' as any,
+    fontWeight: '600',
   },
   generateSigilsButton: {
     flexDirection: 'row',
@@ -530,7 +535,7 @@ const styles = StyleSheet.create({
   generateSigilsText: {
     fontSize: DesignTokens.typography.sizes.xs,
     color: Colors.dark.primary,
-    fontWeight: '600' as any,
+    fontWeight: '600',
   },
   
   // Content
