@@ -26,8 +26,8 @@ export default function DreamLogItem({ dream, showGroupHeader, groupTitle, showS
   const [similarDreams, setSimilarDreams] = useState<{ dream: Dream; similarity: number }[]>([]);
   const [isGeneratingSigil, setIsGeneratingSigil] = useState(false);
   
-  const persona = getPersona(dream.persona);
-  const dreamType = getDreamType(dream.dreamType);
+  const persona = getPersona(dream.persona || 'orion');
+  const dreamType = getDreamType(dream.dreamType || '');
   
   useEffect(() => {
     const sigil = getDreamSigil(dream.id);
@@ -97,7 +97,7 @@ export default function DreamLogItem({ dream, showGroupHeader, groupTitle, showS
       <Pressable style={styles.container} onPress={handlePress}>
         <View style={styles.header}>
           <View style={styles.titleContainer}>
-            <Text style={styles.dreamName}>{dream.name}</Text>
+            <Text style={styles.dreamName}>{dream.name || dream.title || 'Untitled Dream'}</Text>
             <View style={styles.badgeContainer}>
               <View style={[styles.personaBadge, { backgroundColor: persona.color + '33' }]}>
                 <Text style={[styles.personaText, { color: persona.color }]}>
@@ -139,17 +139,17 @@ export default function DreamLogItem({ dream, showGroupHeader, groupTitle, showS
               )}
             </View>
           </View>
-          <Text style={styles.date}>{formatDate(dream.date)}</Text>
+          <Text style={styles.date}>{formatDate(dream.date || new Date(dream.timestamp).toISOString())}</Text>
         </View>
         
         <Text style={styles.dreamText}>
-          {truncateText(dream.text)}
+          {truncateText(dream.text || dream.content || '')}
         </Text>
         
         <View style={styles.interpretationContainer}>
           <Text style={styles.interpretationLabel}>Interpretation:</Text>
           <Text style={styles.interpretationText}>
-            {truncateText(dream.interpretation, 150)}
+            {truncateText(dream.interpretation || 'No interpretation available', 150)}
           </Text>
         </View>
         
@@ -192,7 +192,7 @@ export default function DreamLogItem({ dream, showGroupHeader, groupTitle, showS
         <View style={styles.footer}>
           <View style={styles.footerLeft}>
             <Text style={styles.lengthIndicator}>
-              {dream.text.length} characters
+              {(dream.text || dream.content || '').length} characters
             </Text>
             {dreamSigil && (
               <View style={styles.sigilIndicator}>
