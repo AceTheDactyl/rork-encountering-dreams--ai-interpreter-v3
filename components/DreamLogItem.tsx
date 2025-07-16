@@ -26,7 +26,7 @@ export default function DreamLogItem({ dream, showGroupHeader, groupTitle, showS
   const [similarDreams, setSimilarDreams] = useState<{ dream: Dream; similarity: number }[]>([]);
   const [isGeneratingSigil, setIsGeneratingSigil] = useState(false);
   
-  const persona = getPersona(dream.persona || 'orion');
+  const persona = getPersona((dream.persona as 'orion' | 'limnus') || 'orion');
   const dreamType = getDreamType(dream.dreamType || '');
   
   useEffect(() => {
